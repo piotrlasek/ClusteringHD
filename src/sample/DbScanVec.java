@@ -5,43 +5,51 @@ import java.util.ArrayList;
 /**
  * Created by Piotr Lasek on 15-04-17.
  */
-public class DBSCAN {
-    private ArrayList<MyBitSet> dataset;
-    private ArrayList<Cluster> clusters;
-    private ArrayList<MyBitSet> noise;
-    private double Eps = 0.3;
-    private int MinPts = 15;
+public class DbScanVec {
+    private ArrayList<MyVector> dataset;
+    private ArrayList<ClusterVect> clusters;
+    private ArrayList<MyVector> noise;
+    private double Eps = 0.70;
+    private int MinPts = 20;
 
     /**
      *
      * @param dataset
      */
-    public DBSCAN(ArrayList<MyBitSet> dataset) {
+    public DbScanVec(ArrayList<MyVector> dataset) {
         this.setDataset(dataset);
-        setClusters(new ArrayList<Cluster>());
-        setNoise(new ArrayList<MyBitSet>());
+        setClusters(new ArrayList<ClusterVect>());
+        setNoise(new ArrayList<MyVector>());
     }
 
     /**
      *
      */
     public void run() {
-        System.out.println("Starting DBSCAN...");
         int clusterId = 1;
 
-        for(MyBitSet p : getDataset()) {
+        for(MyVector p : getDataset()) {
             if (p.clusterId == -1) { // UNCLASSIFIED
-               ArrayList<MyBitSet> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
+               ArrayList<MyVector> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
                if (clusterPoints.size() > 0) {
-                   System.out.println("Cluster: " + clusterId);
-                   Cluster c = new Cluster(clusterId);
+                   ClusterVect c = new ClusterVect(clusterId);
                    c.addAll(clusterPoints);
                    getClusters().add(c);
+                   printCluster(c);
                    clusterId++;
                }
             }
         }
-        System.out.println("Done.");
+    }
+
+    private void printCluster(ClusterVect c) {
+        ArrayList<MyVector> points = c.getPoints();
+        System.out.println("Cluter: " + c.getClusterId() + ", size: " + points.size());
+        System.out.print("Points: ");
+        for (MyVector p : points) {
+            System.out.print(p.getId() + ",");
+        }
+        System.out.println();
     }
 
     /**
@@ -51,11 +59,11 @@ public class DBSCAN {
      * @param clusterId
      * @return
      */
-    public ArrayList<MyBitSet> ExpandCluster(ArrayList<MyBitSet> set, MyBitSet point, int clusterId) {
+    public ArrayList<MyVector> ExpandCluster(ArrayList<MyVector> set, MyVector point, int clusterId) {
 
-        ArrayList<MyBitSet> clusterPoints = new ArrayList<MyBitSet>();
+        ArrayList<MyVector> clusterPoints = new ArrayList<MyVector>();
 
-        ArrayList<MyBitSet> seeds = point.getNeighbours(getDataset(), getEps());
+        ArrayList<MyVector> seeds = point.getNeighbours(getDataset(), getEps());
 
         if (seeds.size() < getMinPts()) {
             point.clusterId = 0; // NOISE
@@ -67,10 +75,10 @@ public class DBSCAN {
             clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
 
             while(seeds.size() > 0) {
-                MyBitSet currentP = seeds.remove(0);
-                ArrayList<MyBitSet> result = currentP.getNeighbours(set, getEps());
+                MyVector currentP = seeds.remove(0);
+                ArrayList<MyVector> result = currentP.getNeighbours(set, getEps());
                 if (result.size() >= getMinPts()) {
-                    for (MyBitSet resultP : result) {
+                    for (MyVector resultP : result) {
                         if (resultP.clusterId == -1 || resultP.clusterId == 0) {
                             if (resultP.clusterId == -1) seeds.add(resultP);
                             resultP.clusterId = clusterId;
@@ -84,27 +92,27 @@ public class DBSCAN {
         return clusterPoints;
     }
 
-    public ArrayList<MyBitSet> getDataset() {
+    public ArrayList<MyVector> getDataset() {
         return dataset;
     }
 
-    public void setDataset(ArrayList<MyBitSet> dataset) {
+    public void setDataset(ArrayList<MyVector> dataset) {
         this.dataset = dataset;
     }
 
-    public ArrayList<Cluster> getClusters() {
+    public ArrayList<ClusterVect> getClusters() {
         return clusters;
     }
 
-    public void setClusters(ArrayList<Cluster> clusters) {
+    public void setClusters(ArrayList<ClusterVect> clusters) {
         this.clusters = clusters;
     }
 
-    public ArrayList<MyBitSet> getNoise() {
+    public ArrayList<MyVector> getNoise() {
         return noise;
     }
 
-    public void setNoise(ArrayList<MyBitSet> noise) {
+    public void setNoise(ArrayList<MyVector> noise) {
         this.noise = noise;
     }
 

@@ -37,6 +37,16 @@ public class Main extends Application {
 
     /**
      *
+     * @param connection
+     */
+    public static void visualize(Connection connection) throws SQLException {
+        Visualization v = new Visualization(connection);
+
+
+    }
+
+    /**
+     *
      * @param args
      * @throws ClassNotFoundException
      * @throws SQLException
@@ -51,49 +61,63 @@ public class Main extends Application {
         props.setProperty("password","postgres");
         Connection conn = DriverManager.getConnection(url, props);
 
-        ArrayList<MyBitSet> dataset = new ArrayList<MyBitSet>();
+        Main.visualize(conn);
 
-        Utils.map(conn);
+        /*try {
+            StringBuilder sb = Utils.generateQuery(conn);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-        if (true) return;
+        if (true) return;*/
+
+        ArrayList<MyVector> dataset = new ArrayList<MyVector>();
 
         Statement statementGetBitRecords = conn.createStatement();
 
-        System.out.println("Reading data from DB...");
+        System.out.println("Reading data from DB... ");
         //statementGetBitRecords.execute("SELECT * FROM data2 where id in (62021,62021,64017,66147,69691,72839,78302,78370,78836,82493,85477,98314,106592,121731,124452,124816,5682,6745,7727,14975,18295,24127,32321,32464,32616,34166,39290,42961,47515,48123,50406,51371,58292,108152,114431,123099,43710,54309,21913,32689)");
-        statementGetBitRecords.execute("SELECT * FROM data2 limit 10000");
-        System.out.println("Done.");
+        statementGetBitRecords.execute("SELECT * FROM data5 limit 60000");
+        System.out.print("Done.");
 
         ResultSet resultSetBitRecords = statementGetBitRecords.getResultSet();
 
         int count = 0;
 
-        System.out.println("Constructing an array of bit vectors...");
+        System.out.println("Constructing an array of bit vectors... ");
 
         while(resultSetBitRecords.next()) {
-            MyBitSet mbs = new MyBitSet(resultSetBitRecords);
+            MyVector mbs = new MyVector(resultSetBitRecords);
             dataset.add(mbs);
             count++;
         }
-        System.out.println("Done.");
+        System.out.print("Done.\n");
 
-        MyBitSet first = dataset.get(0);
+        // test
+        /*
+        MyVector v = dataset.get(0);
 
-        DBSCAN dbscan = new DBSCAN(dataset);
+        for(MyVector v2 : dataset) {
+            double x = Utils.tanimotoVector(v.getVector(), v2.getVector());
+            if (x >= 0.68) System.out.println(x);
+        }
+
+          if (true)
+            return;
+        /**/
+
+        DbScanVec dbscan = new DbScanVec(dataset);
+        System.out.println("Starting DBSCAN...");
+        System.out.println("MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
+        long start = System.currentTimeMillis();
         dbscan.run();
+        System.out.println("Done.");
+        long end = System.currentTimeMillis();
+        System.out.println("Run-time: " + ((end - start) / 1000) + " s");
 
         System.out.println("---------------------------------------------------");
-        ArrayList<Cluster> clusters = dbscan.getClusters();
+        ArrayList<ClusterVect> clusters = dbscan.getClusters();
 
-       for(Cluster c : clusters) {
-           ArrayList<MyBitSet> points = c.getPoints();
-           System.out.println("Cluter: " + c.getClusterId() + ", size: " + points.size());
-           System.out.println("Points: ");
-           for (MyBitSet p : points) {
-               System.out.print(p.getId() + ",");
-           }
-           System.out.println();
-       }
 
         // TODO: RETURN !!!
         // -----------------------------------------------------------------------------------
