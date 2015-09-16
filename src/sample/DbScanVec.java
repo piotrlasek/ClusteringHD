@@ -1,16 +1,19 @@
 package sample;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 
 /**
  * Created by Piotr Lasek on 15-04-17.
  */
 public class DbScanVec {
+
     private ArrayList<MyVector> dataset;
     private ArrayList<ClusterVect> clusters;
     private ArrayList<MyVector> noise;
-    private double Eps = 0.70;
-    private int MinPts = 20;
+    public static double Eps;
+    public static int MinPts;
 
     /**
      *
@@ -25,9 +28,9 @@ public class DbScanVec {
     /**
      *
      */
-    public void run() {
+    public void run() throws FileNotFoundException {
         int clusterId = 1;
-
+        PrintWriter pw = new PrintWriter(Main.filePrefix + "-clusters.txt");
         for(MyVector p : getDataset()) {
             if (p.clusterId == -1) { // UNCLASSIFIED
                ArrayList<MyVector> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
@@ -35,24 +38,16 @@ public class DbScanVec {
                    ClusterVect c = new ClusterVect(clusterId);
                    c.addAll(clusterPoints);
                    getClusters().add(c);
-                   printCluster(c);
+                   String cString = c.toString();
+                   pw.write(cString);
                    clusterId++;
                }
             }
         }
+        pw.close();
     }
 
-    private void printCluster(ClusterVect c) {
-        ArrayList<MyVector> points = c.getPoints();
-        System.out.println("Cluter: " + c.getClusterId() + ", size: " + points.size());
-        System.out.print("Points: ");
-        for (MyVector p : points) {
-            System.out.print(p.getId() + ",");
-        }
-        System.out.println();
-    }
-
-    /**
+   /**
      *
      * @param set
      * @param point

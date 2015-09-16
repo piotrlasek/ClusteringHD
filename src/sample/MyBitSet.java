@@ -53,7 +53,7 @@ public class MyBitSet {
 
             for (MyBitSet bs : set) {
                 double dist = Utils.tanimoto(bs.getBits(), getBits());
-                if (1 - dist < Eps) {
+                if ( dist < Eps) {
                     neighbours.add(bs);
                 }
             }

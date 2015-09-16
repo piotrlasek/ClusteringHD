@@ -16,6 +16,8 @@ public class Visualization {
     Connection connection;
 
     String tableName = "data5";
+    String tableSegments = "segment";
+
     /**
      *
      */
@@ -25,14 +27,13 @@ public class Visualization {
 
     /**
      *
-     * @param subgroups
      * @param attributes
      * @param ids
      * @return
      * @throws SQLException
      */
-    public ArrayList<HashMap<String, Double>> getClusterAvarages(ArrayList<String> subgroups, ArrayList<String> attributes,
-                                                           ArrayList<String> ids) throws SQLException {
+    public ArrayList<HashMap<String, Double>> getClusterAvarages(
+           ArrayList<String> attributes, ArrayList<String> ids) throws SQLException {
         ArrayList<HashMap<String, Double>> result = new ArrayList<HashMap<String, Double>>();
         Statement statement = connection.createStatement();
         StringBuilder stringBuilder = new StringBuilder();
@@ -46,8 +47,9 @@ public class Visualization {
             Iterator<String> iAttributes = attributes.iterator();
             while (iAttributes.hasNext()) {
                 stringBuilder.append("\n\tavg(");
-                stringBuilder.append(iAttributes.next());
-                stringBuilder.append(")");
+                String attributeName = iAttributes.next();
+                stringBuilder.append(attributeName);
+                stringBuilder.append(") as " + attributeName);
                 if (iAttributes.hasNext()) {
                     stringBuilder.append(", ");
                 }
@@ -59,7 +61,7 @@ public class Visualization {
             }
         }
 
-        System.out.println(stringBuilder.toString());
+        //System.out.println(stringBuilder.toString());
         statement.execute(stringBuilder.toString());
 
         ResultSet rsAverages = statement.getResultSet();
@@ -67,7 +69,7 @@ public class Visualization {
             HashMap<String, Double> subgroupAverage = new HashMap<String, Double>();
             subgroupAverage.put("CLUSTER_ID", rsAverages.getDouble("CLUSTER_ID"));
             for (String attribute : attributes) {
-                String subgroupName = attribute.substring(0, 4);
+                String subgroupName = attribute.substring(0, 3);
                 Double value = rsAverages.getDouble(attribute);
                 subgroupAverage.put(subgroupName, value);
             }
@@ -86,7 +88,9 @@ public class Visualization {
         Iterator<String> iAttributes = attributes.iterator();
 
         if (true) {
+
         }
+
         return null;
     }
 
@@ -94,8 +98,6 @@ public class Visualization {
      *
      * @param subgroupName
      * @return
-     */
-    private ArrayList<String> getAttributesSubgroup(ArrayList<String> attributes, String subgroupName) {
         ArrayList<String> subgroup = new ArrayList<String>();
 
         for (String attribute : attributes) {
@@ -113,16 +115,17 @@ public class Visualization {
      * @return
      * @throws SQLException
      */
-    private ArrayList<String> getAttributes(ArrayList<String> exceptAttributes) throws SQLException {
+    public ArrayList<String> getAttributes(ArrayList<String> exceptAttributes) throws SQLException {
         ArrayList<String> attributes = new ArrayList<String>();
 
         Statement statement = connection.createStatement();
         String query = selectAttributes(exceptAttributes);
+        //System.out.println(query);
         statement.execute(query);
 
         ResultSet rsAttributes = statement.getResultSet();
         while (rsAttributes.next()) {
-            attributes.add(rsAttributes.getString("name").trim());
+            attributes.add(rsAttributes.getString("name").trim().toLowerCase());
         }
 
         return attributes;
@@ -143,9 +146,9 @@ public class Visualization {
             Iterator<String> itExceptAttributes = exceptAttributes.iterator();
 
             while (true) {
-                sbAttributes.append("name not like \"");
+                sbAttributes.append("name not like '");
                 sbAttributes.append(itExceptAttributes.next().trim());
-                sbAttributes.append("\"%");
+                sbAttributes.append("%'");
                 if (itExceptAttributes.hasNext()) {
                     sbAttributes.append(" AND ");
                 } else {

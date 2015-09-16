@@ -9,7 +9,7 @@ public class DBSCAN {
     private ArrayList<MyBitSet> dataset;
     private ArrayList<Cluster> clusters;
     private ArrayList<MyBitSet> noise;
-    private double Eps = 0.3;
+    private double Eps = 0.9;
     private int MinPts = 15;
 
     /**

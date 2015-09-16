@@ -1,6 +1,7 @@
 package sample;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 
 import java.io.BufferedReader;
@@ -28,13 +29,15 @@ public class Utils {
      * @return
      * @throws SQLException
      */
-    public static HashMap<String, String> getAttributeFormat(Connection connection) throws SQLException {
+    public static HashMap<String, String> getAttributeFormat(Connection connection, String attributesList)
+            throws SQLException {
         HashMap<String, String> result = new HashMap<String, String>();
         String query =
             "SELECT " +
             "    NAME, FORMAT " +
             "FROM " +
-            "    attributes ";
+            "    attributes " +
+            "WHERE name IN (" + attributesList + ")";
 
         Statement statement = connection.createStatement();
         statement.execute(query);
@@ -52,27 +55,27 @@ public class Utils {
     }
 
     /**
+     * Creates a file containing sql code for creating a "mapped" table tableName
      *
      * @param connection
+     * @param tableName
      * @return
      * @throws Exception
      */
-    public static StringBuilder generateQuery(Connection connection) throws Exception {
+    public static StringBuilder generateQuery(Connection connection, String tableName, String attributesList)
+            throws Exception {
         StringBuilder sb = new StringBuilder();
-        HashMap<String, String> attributesFormats = Utils.getAttributeFormat(connection);
+        HashMap<String, String> attributesFormats = Utils.getAttributeFormat(connection, attributesList);
         HashMap<String, Mapping> formatMappings = Utils.map(connection);
-
         Set<String> attributes = attributesFormats.keySet();
         boolean first = true;
+
         sb.append("SELECT\n");
         sb.append("\tID,\n");
+
         for(String attribute : attributes) {
-//            System.out.println("a: " + attribute);
-
+            // System.out.println("a: " + attribute);
             String format = attributesFormats.get(attribute);
-
-//            System.out.println("++" + format);
-
             Mapping oldNewValues = formatMappings.get(format);
             if (first) {sb.append("\tCASE\n"); first = false;}
             else sb.append(",\n\tCASE\n");
@@ -89,14 +92,14 @@ public class Utils {
                 nullWord = nullWord.replace("'", "''");
                 sb.append("\t\tWHEN lower(" + attribute + ") LIKE '" + nullWord + "' THEN null \n");
             }
-            sb.append("\tEND AS " + attribute);
 
+            sb.append("\tEND AS " + attribute);
         }
 
-        sb.append("\nINTO DATA3\nFROM data LIMIT 3");
+        sb.append("\nINTO " + tableName + "_map" + "\nFROM " + tableName + " LIMIT 3");
         System.out.println(sb.toString());
 
-        FileUtils.writeStringToFile(new File("query.sql"), sb.toString());
+        FileUtils.writeStringToFile(new File("query-gen-table-" + tableName + "_map" + ".sql"), sb.toString());
 
         return sb;
     }
@@ -112,7 +115,6 @@ public class Utils {
         HashMap<String, Mapping> formatMapping = new HashMap<String, Mapping>();
         String homeDirectory = System.getProperty("user.home");
         String filePath = homeDirectory + "/Dropbox/PROJECTS/DIABETIC/attributes.txt";
-
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             while (true) {
@@ -141,7 +143,10 @@ public class Utils {
 
                 br.readLine(); // ---
 
-                HashMap<String, Integer> mapping = new HashMap<String, Integer>();
+                //HashMap<String, Integer> mapping = new HashMap<String, Integer>();
+                HashMap<String, String> mapping = new HashMap<String, String>();
+
+
                 int tmpInt = 0;
                 for(String attribute; (attribute = br.readLine()) != null && !attribute.isEmpty() ; ) {
                     // System.out.println(attribute);
@@ -149,7 +154,7 @@ public class Utils {
                     // an attribute is not a "stop-word"
                     if (!stopWords.contains(at[1])) {
                         if (intDef && !castInt && !castFloat && at.length == 3)
-                            mapping.put(at[1], new Integer(at[2]));
+                            mapping.put(at[1], at[2]);
                         else if (castInt && !castFloat && !intDef && at.length == 2) {
                             String n = at[1];
                             int index = n.indexOf(" ");
@@ -160,10 +165,14 @@ public class Utils {
                             n = n.replaceAll("[^\\d.]", "");
                             //n = n.replace(" ", "");
                             Integer i = new Integer(n);
-                            mapping.put(at[1], i);
+                            mapping.put(at[1], i.toString());
                         } else if (castInt == false && intDef == false && at.length == 2 &&
                                 castFloat == false) {
-                            mapping.put(at[1], tmpInt++);
+                            // Nominal attributes...
+
+                            // mapping.put(at[1], tmpInt++);
+                            mapping.put(at[1], at[2]);
+
                         } else if (castFloat == true && intDef == false && castInt == false &&
                                 at.length == 2) {
                             String n = at[1];
@@ -172,7 +181,7 @@ public class Utils {
                                 n = n.substring(0, index - 1);
                             }
                             Integer i = (int) (Float.parseFloat(n) * 10);
-                            mapping.put(at[1], i);
+                            mapping.put(at[1], i.toString());
                         } else {
                             System.out.println("BREAK > " + attribute);
                             break;
@@ -186,21 +195,30 @@ public class Utils {
                 Integer min = null;
                 Integer max = null;
                 for(String key:keys) {
-                    Integer v = mapping.get(key);
+                    try {
+                        String s = mapping.get(key);
+                        Integer v = null;
+                        if (s != null) {
+                            v = new Integer(mapping.get(key));
+                        }
 
-                    if (min == null) min = v;
-                    if (max == null) max = v;
+                        if (min == null) min = v;
+                        if (max == null) max = v;
 
-                    if (v < min) min = v;
-                    if (v > max) max = v;
+                        if (v < min) min = v;
+                        if (v > max) max = v;
+                    } catch (Exception e) {
+
+                    }
                 }
 
-                for(String key:keys) {
+/*                for(String key:keys) {
+
                     Integer v = mapping.get(key);
                     v = (10 * v) / (max - min);
                     mapping.put(key, v);
                 }
-
+*/
                 //System.out.println("> " + format);
                 Mapping m = new Mapping();
                 m.setMapping(mapping);
@@ -350,7 +368,6 @@ public class Utils {
 
         double t = (double) AB / (A2 + B2 - AB);
 
-
         return t;
     }
 
@@ -365,16 +382,60 @@ public class Utils {
 
     /**
      *
-     * @param a
-     * @param b
+     * @param u
+     * @param v
      * @return
      */
     public static double tanimotoVector(DenseVector u, DenseVector v) {
-        double uv = u.times(v).zSum();
-        double u2 = u.getLengthSquared();
-        double v2 = v.getLengthSquared();
-        double dist = uv / (u2 + v2 - uv);
-        //if (dist < 0.99) System.out.println(dist);
+//        double uv = u.times(v).zSum();
+//        double u2 = u.getLengthSquared();
+//        double v2 = v.getLengthSquared();
+//        double dist = uv / (u2 + v2 - uv);
+        //TanimotoDistanceMeasure tdm = new TanimotoDistanceMeasure();
+        EuclideanDistanceMeasure tdm = new EuclideanDistanceMeasure();
+        double dist = tdm.distance(v, u);
+
         return dist;
+    }
+
+    /**
+     *
+     * @param tableName
+     * @param clusters
+     * @param conn
+     * @param algorithm
+     * @throws SQLException
+     */
+    public static void saveClusters(String tableName, ArrayList<ClusterVect> clusters, Connection conn, String algorithm) throws SQLException {
+
+        System.out.println("Saving clusters...");
+        Statement s = conn.createStatement();
+
+        // clear previous results
+        String q = "update " + tableName + "_map" + " set " + algorithm + " = NULL";
+        s.execute(q);
+
+        // prepare statement
+
+        Statement ps = conn.createStatement();
+
+        // update cluster labels
+        for(ClusterVect cv : clusters) {
+            String update = "update " + tableName + "_map " + " set " + algorithm + " = #ALG " +
+                    " where id in (#IDS)";
+            // ps.setInt(1, cv.clusterId);
+            // ps.setString(2, cv.toString());
+            // ps.execute();
+
+            System.out.println("Cluster " + cv.getClusterId() + ": " + cv.toString());
+
+            update = update.replace("#ALG", "" + cv.getClusterId());
+            update = update.replace("#IDS", cv.toString());
+            System.out.println(update);
+            s.execute(update);
+        }
+
+        System.out.println("Done.");
+
     }
 }

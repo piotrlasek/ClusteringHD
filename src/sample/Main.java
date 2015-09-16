@@ -5,23 +5,26 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.apache.mahout.math.Vector;
 
-import java.io.IOException;
+import java.io.*;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * Created by Piotr Lasek on 15-04-17.
  */
 public class Main extends Application {
+    static {
+        DbScanVec.Eps = 0.1;
+        DbScanVec.MinPts = 80;
+    }
+
+    public static String filePrefix = "C:\\Users\\Piotr\\Dropbox\\PROJECTS\\DIABETIC\\diabetic-D-10k-03-25-all";
 
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Hello World");
+        primaryStage.setTitle("Diabetic - clusters visualization " + DbScanVec.Eps + ", " + DbScanVec.MinPts );
         primaryStage.setScene(new Scene(root, 300, 275));
         primaryStage.show();
     }
@@ -39,10 +42,65 @@ public class Main extends Application {
      *
      * @param connection
      */
-    public static void visualize(Connection connection) throws SQLException {
+    public static void visualize(Connection connection) throws SQLException, IOException {
         Visualization v = new Visualization(connection);
+        ArrayList<String> exceptAttributes = new ArrayList<String>(Arrays.asList(
+                "VERDATE", "ADM_RNO", "WTS_M"
+                ));
+        ArrayList<String> ids = new ArrayList<String>();
 
+        // read ids from file
+        FileInputStream fstream = new FileInputStream(filePrefix + "-clusters.txt");
+        BufferedReader br = new BufferedReader(new InputStreamReader(fstream));
 
+        String strLine;
+        while ((strLine = br.readLine()) != null) {
+            //System.out.println(strLine);
+            if (strLine.startsWith("Points: ")) {
+                strLine = strLine.replace("Points: ", "");
+                strLine = strLine.substring(0, strLine.length() - 1);
+                ids.add(strLine);
+                //System.out.println(strLine);
+            }
+        }
+
+        br.close();
+
+        ArrayList<String> attributes = v.getAttributes(exceptAttributes);;
+        ArrayList<HashMap<String,Double>> averages = v.getClusterAvarages(attributes, ids);
+
+        StringBuilder sb = new StringBuilder();
+
+        for(HashMap<String, Double> cluster : averages) {
+            Set<String> subgroups = cluster.keySet();
+            sb.append("CLUSTER_ID" + ";");
+            for(String subgroup : subgroups) {
+                if (!subgroup.equals("CLUSTER_ID")) {
+                    sb.append(subgroup + ";");
+                }
+            }
+            sb.append("\n");
+            break;
+        }
+
+        for(HashMap<String, Double> cluster : averages) {
+            Set<String> subgroups = cluster.keySet();
+            sb.append(cluster.get("CLUSTER_ID") + ";");
+
+            for(String subgroup : subgroups) {
+                if (!subgroup.equals("CLUSTER_ID")) {
+                    Double value = (Double) cluster.get(subgroup);
+                    sb.append(value + ";");
+                }
+            }
+            sb.append("\n");
+        }
+
+        //System.out.println(sb.toString());
+
+        PrintWriter pw = new PrintWriter(Main.filePrefix + "-averages.txt");
+        pw.write(sb.toString());
+        pw.close();
     }
 
     /**
@@ -52,33 +110,55 @@ public class Main extends Application {
      * @throws SQLException
      * @throws IOException
      */
-    public static void main(String[] args) throws ClassNotFoundException, SQLException, IOException {
+    public static void main(String[] args) throws Exception {
 
         Class.forName("org.postgresql.Driver");
-        String url = "jdbc:postgresql://ubuntu/diabetic";
+        String url = "jdbc:postgresql://us/diabetic";
         Properties props = new Properties();
-        props.setProperty("user","postgres");
-        props.setProperty("password","postgres");
+        props.setProperty("user","piotr");
+        props.setProperty("password", "piotr");
         Connection conn = DriverManager.getConnection(url, props);
 
-        Main.visualize(conn);
+        String tableName = "segments";
+        String attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV'," +
+                "'INCGHH','CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2'," +
+                "'GENGSWL','GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6'," +
+                "'SPV_6B','SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
 
-        /*try {
-            StringBuilder sb = Utils.generateQuery(conn);
+        //String attributes = "'DHHGAGE','GENDHDI','CIH_1','HUPDPAD','CHPGMDC','PACDFM','PMH_04'";
+
+        // Most important
+        //String attributes = "'GENDHDI', 'DHHGAGE', 'HUPDPAD', 'GEODPMF', 'GEN_08'";
+        //, 'GEN_02A2', 'GENGSWL', 'GEOGPRV', 'PACDFM', 'PACDEE'";
+
+        String algorithm = "";
+
+        // Creates a mapped table segments_map based on original table segments.
+        attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH','CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2','GENGSWL','GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6','SPV_6B','SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
+        try {
+            Utils.generateQuery(conn, tableName, attributes);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        if (true) return;*/
+        if (true) return;
+        // !!!!!
+
+        SelectAttributesDialog sad = new SelectAttributesDialog(attributes, conn);
+        sad.setVisible(true);
+        attributes = sad.getResult();
+        algorithm = sad.getAlgorithm();
+
+        System.out.println("Selected attributes: " + attributes);
 
         ArrayList<MyVector> dataset = new ArrayList<MyVector>();
 
         Statement statementGetBitRecords = conn.createStatement();
 
         System.out.println("Reading data from DB... ");
-        //statementGetBitRecords.execute("SELECT * FROM data2 where id in (62021,62021,64017,66147,69691,72839,78302,78370,78836,82493,85477,98314,106592,121731,124452,124816,5682,6745,7727,14975,18295,24127,32321,32464,32616,34166,39290,42961,47515,48123,50406,51371,58292,108152,114431,123099,43710,54309,21913,32689)");
-        statementGetBitRecords.execute("SELECT * FROM data5 limit 60000");
-        System.out.print("Done.");
+        String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map";
+        statementGetBitRecords.execute(query);
+        System.out.println("Done.");
 
         ResultSet resultSetBitRecords = statementGetBitRecords.getResultSet();
 
@@ -91,114 +171,88 @@ public class Main extends Application {
             dataset.add(mbs);
             count++;
         }
+
         System.out.print("Done.\n");
 
-        // test
-        /*
-        MyVector v = dataset.get(0);
+        ArrayList<ClusterVect> clusters;
 
-        for(MyVector v2 : dataset) {
-            double x = Utils.tanimotoVector(v.getVector(), v2.getVector());
-            if (x >= 0.68) System.out.println(x);
+        long start = System.currentTimeMillis();
+
+        System.out.println("Starting DBSCAN...");
+
+        if ("DBSCAN".equals(algorithm)) {
+            DbScanVec dbscan = new DbScanVec(dataset);
+            System.out.println("MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
+            dbscan.run();
+            clusters = dbscan.getClusters();
+        } else if ("KMEANS".equals(algorithm)) {
+            int k = 7;
+            KMeans kmeans = new KMeans(dataset, k);
+            System.out.println("k: " + k);
+            kmeans.run();
+            clusters = kmeans.getClusters();
+        } else {
+            throw new Exception("Unknown algorithm");
         }
 
-          if (true)
-            return;
-        /**/
-
-        DbScanVec dbscan = new DbScanVec(dataset);
-        System.out.println("Starting DBSCAN...");
-        System.out.println("MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
-        long start = System.currentTimeMillis();
-        dbscan.run();
         System.out.println("Done.");
+
         long end = System.currentTimeMillis();
         System.out.println("Run-time: " + ((end - start) / 1000) + " s");
-
         System.out.println("---------------------------------------------------");
-        ArrayList<ClusterVect> clusters = dbscan.getClusters();
+        Utils.saveClusters(tableName, clusters, conn, algorithm);
+
+        // prepare visualization
+       // Main.visualize(conn);
+        //if (true) return; /**/
+
+        // show visualization
+       // launch(args);
+       // if (true) return; /**/
 
 
-        // TODO: RETURN !!!
+
+
+
+
+
+        // if (true) return;
+
         // -----------------------------------------------------------------------------------
-        if (true) return;
-
-        ArrayList<Attribute> attributes = Utils.getAttributes(conn);
-
-        String query =
-            "SELECT " +
-            "   [column_name], " +
-            "   COUNT([column_name]) AS CNT " +
-            "FROM " +
-            "   DATA " +
-            "GROUP BY " +
-            "   [column_name] " +
-            "ORDER BY " +
-            "   CNT DESC";
-
-        // Check possible values
-        for(Attribute a : attributes) {
-            String q = query.replace("[column_name]", a.getName());
-
-            Statement s = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            s.execute(q);
-
-            ResultSet result = s.getResultSet();
-
-            System.out.println("---------------------------------------------------");
-            System.out.println(a.getName().toUpperCase() + " - " + a.getLabel());
-            System.out.println("---------------------------------------------------");
-            int cnt = 0;
-            while (result.next()) {
-                cnt++;
-                if (cnt > 50) {System.out.println("--break--"); break;}
-                Integer c = result.getInt("CNT");
-                System.out.println("" + c + "\t\t" + result.getString(a.getName()));
-            }
-        }
-
-        // TODO: RETURN!!!
         // -----------------------------------------------------------------------------------
 
-        if (true) return;
-
-        int length = 1207;
-
-        BitSet bs = new BitSet(length);
-
-        // TODO: mahout vector...
-        Vector vector;
-
-        for (int i = 0; i < length; i++) {
-            bs.set(i, true);
-        }
-
-        System.out.println("Bit set:");
-        System.out.println(bs);
-
-        System.out.println("Generating list of bit sets...");
-
-        ArrayList<BitSet> sets = new ArrayList<BitSet>();
-
-        for (int i = 0; i < length * length; i++) {
-            sets.add(new BitSet(length));
-        }
-
-        System.out.println("Done.");
-
-        System.out.println("Generating data...");
-
-        ArrayList<Integer[]> data = new ArrayList<Integer[]>();
-
-        for (int i = 0; i < 100000; i++) {
-            Integer[] row = new Integer[length];
-            for (int j = 0; j < length; j++) {
-                row[j] = 1;
-            }
-            data.add(row);
-        }
-        System.out.println("Done.");
-
-        // launch(args);
+//        ArrayList<Attribute> attributesList = Utils.getAttributes(conn);
+//
+//        String query =
+//            "SELECT " +
+//            "   [column_name], " +
+//            "   COUNT([column_name]) AS CNT " +
+//            "FROM " +
+//            "   DATA " +
+//            "GROUP BY " +
+//            "   [column_name] " +
+//            "ORDER BY " +
+//            "   CNT DESC";
+//
+//        // Check possible values
+//        for(Attribute a : attributesList) {
+//            String q = query.replace("[column_name]", a.getName());
+//
+//            Statement s = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+//            s.execute(q);
+//
+//            ResultSet result = s.getResultSet();
+//
+//            System.out.println("---------------------------------------------------");
+//            System.out.println(a.getName().toUpperCase() + " - " + a.getLabel());
+//            System.out.println("---------------------------------------------------");
+//            int cnt = 0;
+//            while (result.next()) {
+//                cnt++;
+//                if (cnt > 50) {System.out.println("--break--"); break;}
+//                Integer c = result.getInt("CNT");
+//                System.out.println("" + c + "\t\t" + result.getString(a.getName()));
+//            }
+//        }
     }
 }

@@ -1,7 +1,9 @@
 package sample;
 
 import org.apache.mahout.math.DenseVector;
+
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
@@ -21,25 +23,28 @@ public class MyVector {
      * @throws SQLException
      */
     public MyVector(ResultSet rs) throws SQLException {
-
-        width = 1204;
-        vector = new DenseVector(width);
         id = rs.getInt(1);
 
-        // System.out.print("" + id + ": ");
-        for(int i = 0; i < width; i++) {
-            int v = rs.getInt(i + 2);
-            // System.out.print(v + " ");
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnsNumber = rsmd.getColumnCount();
+
+        vector = new DenseVector(columnsNumber - 1);
+
+        // ignore first column -> ID
+        for(int i = 0; i < columnsNumber - 1; i++) {
+            Integer v = null;
+            //Object o = rs.getObject(i + 2);
+            //if (o != null)  {
+                v = rs.getInt(i + 2);
+            //}
+
             vector.set(i, v);
         }
-        // System.out.println();
 
-        //vector.logNormalize(20);
-        //System.out.println(vector);
         vector = (DenseVector) vector.normalize();
-        //System.out.println(vector);
     }
-        /**
+
+    /**
      *
      * @param set
      * @param Eps
@@ -52,7 +57,7 @@ public class MyVector {
 
             for (MyVector bs : set) {
                 double dist = Utils.tanimotoVector(bs.getVector(), getVector());
-                if (dist > Eps) {
+                if (dist < Eps) {
                     neighbours.add(bs);
                 }
             }
@@ -99,5 +104,9 @@ public class MyVector {
 
     public void setVector(DenseVector vector) {
         this.vector = vector;
+    }
+
+    public void setClusterId(int clusterId) {
+        this.clusterId = clusterId;
     }
 }
