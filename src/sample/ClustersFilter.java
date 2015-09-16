@@ -27,5 +27,4 @@ final class ClustersFilter implements PathFilter {
         String pathString = path.toString();
         return pathString.contains("/clusters-");
     }
-
 }

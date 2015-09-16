@@ -134,7 +134,10 @@ public class Main extends Application {
         String algorithm = "";
 
         // Creates a mapped table segments_map based on original table segments.
-        attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH','CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2','GENGSWL','GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6','SPV_6B','SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
+        attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH'," +
+                "'CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2','GENGSWL'," +
+                "'GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6','SPV_6B'," +
+                "'SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
         try {
             Utils.generateQuery(conn, tableName, attributes);
         } catch (Exception e) {
@@ -209,12 +212,6 @@ public class Main extends Application {
         // show visualization
        // launch(args);
        // if (true) return; /**/
-
-
-
-
-
-
 
         // if (true) return;
 
