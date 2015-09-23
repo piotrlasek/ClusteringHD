@@ -8,7 +8,17 @@ public class NominalNumericalAttributeValue {
     float numericalValue;
     String nominalValue;
 
-    boolean type; // 1 numerical, 0 nominal
+    boolean numerical; // 1 numerical, 0 nominal
+
+    public NominalNumericalAttributeValue(String value, boolean numerical) {
+        this.nominalValue = value;
+        this.numerical = numerical;
+
+        if (numerical) {
+            Float aFloat = new Float(value);
+            numericalValue = aFloat;
+        }
+    }
 
     public float getFloat() {
         return numericalValue;
@@ -19,7 +29,7 @@ public class NominalNumericalAttributeValue {
     }
 
     public boolean isNumerical() {
-        return type;
+        return numerical;
     }
 
 }
