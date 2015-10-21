@@ -9,7 +9,7 @@ public class ClusterVect {
 
     int clusterId = -1;
 
-    ArrayList<MyVector> points;
+    ArrayList<NominalNumericalObject> points;
 
     private String pointsString = null;
 
@@ -19,14 +19,14 @@ public class ClusterVect {
      */
     public ClusterVect(int clusterId) {
         this.clusterId = clusterId;
-        points = new ArrayList<MyVector>();
+        points = new ArrayList<NominalNumericalObject>();
     }
 
     /**
      *
      * @param point
      */
-    public void addPoint(MyVector point) throws Exception {
+    public void addPoint(NominalNumericalObject point) throws Exception {
         points.add(point);
         if (point.clusterId != this.clusterId) {
             throw new Exception("Wrong cluster.");
@@ -37,7 +37,7 @@ public class ClusterVect {
      *
      * @return
      */
-    public ArrayList<MyVector> getPoints() {
+    public ArrayList<NominalNumericalObject> getPoints() {
         return points;
     }
 
@@ -57,7 +57,7 @@ public class ClusterVect {
         return clusterId;
     }
 
-    public void addAll(ArrayList<MyVector> list) {
+    public void addAll(ArrayList<NominalNumericalObject> list) {
        points.addAll(list);
     }
 
@@ -70,12 +70,12 @@ public class ClusterVect {
         if (pointsString == null) {
 
             StringBuilder sb = new StringBuilder();
-            ArrayList<MyVector> points = this.getPoints();
+            ArrayList<NominalNumericalObject> points = this.getPoints();
 
             //sb.append("Cluter: " + this.getClusterId() + ", size: " + points.size() + "\n");
             //sb.append("Points: ");
             int cnt = 0;
-            for (MyVector p : points) {
+            for (NominalNumericalObject p : points) {
                 if (cnt > 0) sb.append(", ");
                 sb.append(p.getId());
                 cnt++;

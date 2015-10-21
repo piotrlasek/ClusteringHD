@@ -9,9 +9,9 @@ import java.util.ArrayList;
  */
 public class DbScanVec {
 
-    private ArrayList<MyVector> dataset;
+    private ArrayList<NominalNumericalObject> dataset;
     private ArrayList<ClusterVect> clusters;
-    private ArrayList<MyVector> noise;
+    private ArrayList<NominalNumericalObject> noise;
     public static double Eps;
     public static int MinPts;
 
@@ -19,10 +19,10 @@ public class DbScanVec {
      *
      * @param dataset
      */
-    public DbScanVec(ArrayList<MyVector> dataset) {
-        this.setDataset(dataset);
+    public DbScanVec(ArrayList<NominalNumericalObject> dataset) {
+        setDataset(dataset);
         setClusters(new ArrayList<ClusterVect>());
-        setNoise(new ArrayList<MyVector>());
+        setNoise(new ArrayList<NominalNumericalObject>());
     }
 
     /**
@@ -31,10 +31,11 @@ public class DbScanVec {
     public void run() throws FileNotFoundException {
         int clusterId = 1;
         PrintWriter pw = new PrintWriter(Main.filePrefix + "-clusters.txt");
-        for(MyVector p : getDataset()) {
+        for(NominalNumericalObject p : getDataset()) {
             if (p.clusterId == -1) { // UNCLASSIFIED
-               ArrayList<MyVector> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
+               ArrayList<NominalNumericalObject> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
                if (clusterPoints.size() > 0) {
+                   System.out.println(" > cluster " + clusterId + " created.");
                    ClusterVect c = new ClusterVect(clusterId);
                    c.addAll(clusterPoints);
                    getClusters().add(c);
@@ -54,32 +55,38 @@ public class DbScanVec {
      * @param clusterId
      * @return
      */
-    public ArrayList<MyVector> ExpandCluster(ArrayList<MyVector> set, MyVector point, int clusterId) {
+    public ArrayList<NominalNumericalObject> ExpandCluster(ArrayList<NominalNumericalObject> set, NominalNumericalObject point, int clusterId) {
+        ArrayList<NominalNumericalObject> clusterPoints = new ArrayList<NominalNumericalObject>();
 
-        ArrayList<MyVector> clusterPoints = new ArrayList<MyVector>();
-
-        ArrayList<MyVector> seeds = point.getNeighbours(getDataset(), getEps());
+        ArrayList<NominalNumericalObject> seeds = point.getNeighbours(getDataset(), getEps());
 
         if (seeds.size() < getMinPts()) {
             point.clusterId = 0; // NOISE
             getNoise().add(point);
         } else {
-            point.setNeighboursClusterId(clusterId);
+            point.clusterId = clusterId;
 
             clusterPoints.add(point);
             clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
 
-            while(seeds.size() > 0) {
-                MyVector currentP = seeds.remove(0);
-                ArrayList<MyVector> result = currentP.getNeighbours(set, getEps());
+            //while(seeds.size() > 0) {
+            while(true) {
+                NominalNumericalObject currentP = seeds.remove(0);
+                ArrayList<NominalNumericalObject> result = currentP.getNeighbours(set, getEps());
                 if (result.size() >= getMinPts()) {
-                    for (MyVector resultP : result) {
+                    //for (NominalNumericalObject resultP : result) {  // masakra!
+                    for(int i = 0; i < result.size(); i++) {
+                        NominalNumericalObject resultP = result.get(i);
                         if (resultP.clusterId == -1 || resultP.clusterId == 0) {
                             if (resultP.clusterId == -1) seeds.add(resultP);
                             resultP.clusterId = clusterId;
-                            clusterPoints.add(resultP);
+                            if (!clusterPoints.contains(resultP))
+                                clusterPoints.add(resultP);
                         }
                     }
+                }
+                if (seeds.size() == 0) {
+                    break;
                 }
             } // seeds.size() > 0
         }
@@ -87,11 +94,11 @@ public class DbScanVec {
         return clusterPoints;
     }
 
-    public ArrayList<MyVector> getDataset() {
+    public ArrayList<NominalNumericalObject> getDataset() {
         return dataset;
     }
 
-    public void setDataset(ArrayList<MyVector> dataset) {
+    public void setDataset(ArrayList<NominalNumericalObject> dataset) {
         this.dataset = dataset;
     }
 
@@ -103,11 +110,11 @@ public class DbScanVec {
         this.clusters = clusters;
     }
 
-    public ArrayList<MyVector> getNoise() {
+    public ArrayList<NominalNumericalObject> getNoise() {
         return noise;
     }
 
-    public void setNoise(ArrayList<MyVector> noise) {
+    public void setNoise(ArrayList<NominalNumericalObject> noise) {
         this.noise = noise;
     }
 

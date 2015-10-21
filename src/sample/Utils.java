@@ -1,11 +1,9 @@
 package sample;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
@@ -19,9 +17,6 @@ import java.util.*;
  */
 public class Utils {
 
-    // Will be mapped to null values.
-    public static ArrayList<String> stopWords = new ArrayList<String>(Arrays.asList("don't know", "n/s",
-            "n/a", "refusal", "no drinks last w", "no phy. activity", "not required"));
 
     /**
      *
@@ -32,12 +27,21 @@ public class Utils {
     public static HashMap<String, String> getAttributeFormat(Connection connection, String attributesList)
             throws SQLException {
         HashMap<String, String> result = new HashMap<String, String>();
-        String query =
-            "SELECT " +
-            "    NAME, FORMAT " +
-            "FROM " +
-            "    attributes " +
-            "WHERE name IN (" + attributesList + ")";
+        String query;
+        if (!attributesList.equals("*")) {
+            query =
+                    "SELECT " +
+                            "    NAME, FORMAT " +
+                            "FROM " +
+                            "    attributes " +
+                            "WHERE name IN (" + attributesList + ")";
+        } else {
+            query =
+                    "SELECT " +
+                    "    NAME, FORMAT " +
+                    "FROM " +
+                    "    attributes ";
+        }
 
         Statement statement = connection.createStatement();
         statement.execute(query);
@@ -55,186 +59,146 @@ public class Utils {
     }
 
     /**
-     * Creates a file containing sql code for creating a "mapped" table tableName
      *
-     * @param connection
-     * @param tableName
      * @return
-     * @throws Exception
+     * @throws IOException
      */
-    public static StringBuilder generateQuery(Connection connection, String tableName, String attributesList)
-            throws Exception {
-        StringBuilder sb = new StringBuilder();
-        HashMap<String, String> attributesFormats = Utils.getAttributeFormat(connection, attributesList);
-        HashMap<String, Mapping> formatMappings = Utils.map(connection);
-        Set<String> attributes = attributesFormats.keySet();
-        boolean first = true;
+    public static ArrayList<NominalNumericalAttribute> getNominalNumericalAttributes(Connection connection) throws IOException, SQLException {
 
-        sb.append("SELECT\n");
-        sb.append("\tID,\n");
+        ArrayList<NominalNumericalAttribute> attributes = new ArrayList<NominalNumericalAttribute>();
 
-        for(String attribute : attributes) {
-            // System.out.println("a: " + attribute);
-            String format = attributesFormats.get(attribute);
-            Mapping oldNewValues = formatMappings.get(format);
-            if (first) {sb.append("\tCASE\n"); first = false;}
-            else sb.append(",\n\tCASE\n");
-            Set<String> oldValues = oldNewValues.getOldValues();
-            for(String oldValue : oldValues) {
-                //sb.append(oldValue + " -> " + oldNewValues.getNewValue(oldValue));
-                Integer newValue = oldNewValues.getNewValue(oldValue);
-                //System.out.println(oldValue + " -> " + oldNewValues.getNewValue(oldValue));
-                oldValue = oldValue.replace("'", "''");
-                sb.append("\t\tWHEN lower(" + attribute + ") LIKE '" + oldValue + "' THEN " + newValue + "\n");
+        String homeDirectory = System.getProperty("user.home");
+        String filePath = homeDirectory + "/Dropbox/PROJECTS/DIABETIC/attribute-values.txt";
+
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+
+            while(true) {
+                String s = br.readLine();
+                if (s == null) break;
+
+                if (s.startsWith("-----") || (s.startsWith("--break--"))) {
+                    continue;
+                } else {
+                    String[] ar = s.split(" ");
+                    String attributeName = ar[0];
+                    br.readLine(); // --------------
+                    s = br.readLine();
+
+                    ArrayList<Integer> counts = new ArrayList<Integer>();
+                    ArrayList<String> values = new ArrayList<String>();
+
+                    while(!s.startsWith("--")) {
+                        String cntVal = s;
+                        String[] cntValAr = cntVal.split("\t\t");
+                        Integer cnt = new Integer(cntValAr[0]);
+                        counts.add(cnt);
+                        String val = cntValAr[1];
+                        values.add(val);
+                        s = br.readLine();
+                    }
+
+                    boolean attributeType = getAttributeFormat(values);
+
+                    NominalNumericalAttribute nna = new NominalNumericalAttribute(attributeName,
+                        attributeType);
+                    Float[] minMax = getMinMax(connection, attributeName, attributeType);
+                    nna.setMinMax(minMax);
+
+                    System.out.println(nna.getName() + "\t:\t" + (nna.getType() ? " N " + nna.getMin() +
+                            ", " + nna.getMax() : " abc "));
+
+                    nna.updateAttribute(connection);
+                }
             }
-
-            for(String nullWord : Utils.stopWords) {
-                nullWord = nullWord.replace("'", "''");
-                sb.append("\t\tWHEN lower(" + attribute + ") LIKE '" + nullWord + "' THEN null \n");
-            }
-
-            sb.append("\tEND AS " + attribute);
         }
 
-        sb.append("\nINTO " + tableName + "_map" + "\nFROM " + tableName + " LIMIT 3");
-        System.out.println(sb.toString());
+        return attributes;
+    }
 
-        FileUtils.writeStringToFile(new File("query-gen-table-" + tableName + "_map" + ".sql"), sb.toString());
+    /**
+     *
+     * @param values
+     * @return
+     */
+    private static boolean getAttributeFormat(ArrayList<String> values) {
+        int numbers = 0;
+        int strings = 0;
+        int maxSize = (values.size() > 5 ? 5 : values.size());
+        for (int i = 0; i < maxSize; i++) {
+            String stringValue = values.get(i);
+            Float floatValue = null;
+            Integer intValue = null;
 
-        return sb;
+            try {
+                //floatValue = new Float(stringValue);
+                floatValue = Utils.convert(stringValue);
+                numbers++;
+            } catch (Exception e) {
+                strings++;
+            }
+        }
+
+        if (numbers > strings)
+            return true;
+        else
+            return false;
     }
 
     /**
      *
      * @param connection
-     * @throws SQLException
-     * @throws IOException
+     * @param attributeName
+     * @param typeNumerical
+     * @return
      */
-    public static HashMap<String, Mapping> map(Connection connection) throws Exception {
+    private static Float[] getMinMax(Connection connection, String attributeName, boolean typeNumerical) {
 
-        HashMap<String, Mapping> formatMapping = new HashMap<String, Mapping>();
-        String homeDirectory = System.getProperty("user.home");
-        String filePath = homeDirectory + "/Dropbox/PROJECTS/DIABETIC/attributes.txt";
+        Float[] minMax = new Float[2];
 
-        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
-            while (true) {
-                int tmpX = 0;
-                boolean intDef = false;
-                boolean castInt = false;
-                boolean castFloat = false;
-                String format = br.readLine();
+        try {
+            if (typeNumerical) {
+                Statement statement = connection.createStatement();
+                String queryDistinct = "SELECT DISTINCT " + attributeName + " FROM DATA " +
+                        "WHERE " + attributeName + " NOT IN (" + Mapper.stopWordsAtt + ") ";
 
-                if (format == null)
-                    break;
+                statement.execute(queryDistinct);
 
-                String[] f = format.split("\t");
+                ResultSet rsDistinct = statement.getResultSet();
 
-                if (f.length == 2 && f[1].equals("INT")) {
-                    intDef = false; castInt = true; castFloat = false;
-                } else if (f.length == 2 && f[1].equals("INT_DEF")) {
-                    intDef = true;
-                    castInt = false; castFloat = false;
-                } else if (f.length == 2 && f[1].equals("FLOAT")) {
-                    intDef = false; castInt = false; castFloat = true;
-                } else if (f.length == 2) {
-                    System.out.println("ERROR: " + format);
-                    break;
-                }
+                ArrayList<Float> values = new ArrayList<Float>();
 
-                br.readLine(); // ---
-
-                //HashMap<String, Integer> mapping = new HashMap<String, Integer>();
-                HashMap<String, String> mapping = new HashMap<String, String>();
-
-
-                int tmpInt = 0;
-                for(String attribute; (attribute = br.readLine()) != null && !attribute.isEmpty() ; ) {
-                    // System.out.println(attribute);
-                    String[] at = attribute.split("\t");
-                    // an attribute is not a "stop-word"
-                    if (!stopWords.contains(at[1])) {
-                        if (intDef && !castInt && !castFloat && at.length == 3)
-                            mapping.put(at[1], at[2]);
-                        else if (castInt && !castFloat && !intDef && at.length == 2) {
-                            String n = at[1];
-                            int index = n.indexOf(" ");
-                            if (index != -1) {
-                                n = n.substring(0, index);
-                            }
-                            // System.out.println("----" + n);
-                            n = n.replaceAll("[^\\d.]", "");
-                            //n = n.replace(" ", "");
-                            Integer i = new Integer(n);
-                            mapping.put(at[1], i.toString());
-                        } else if (castInt == false && intDef == false && at.length == 2 &&
-                                castFloat == false) {
-                            // Nominal attributes...
-
-                            // mapping.put(at[1], tmpInt++);
-                            mapping.put(at[1], at[2]);
-
-                        } else if (castFloat == true && intDef == false && castInt == false &&
-                                at.length == 2) {
-                            String n = at[1];
-                            int index = n.indexOf(" ");
-                            if (index != -1) {
-                                n = n.substring(0, index - 1);
-                            }
-                            Integer i = (int) (Float.parseFloat(n) * 10);
-                            mapping.put(at[1], i.toString());
-                        } else {
-                            System.out.println("BREAK > " + attribute);
-                            break;
-                        }
-                    }
-                }
-
-                // map to 0 - 10;
-                Set<String> keys = mapping.keySet();
-
-                Integer min = null;
-                Integer max = null;
-                for(String key:keys) {
+                while(rsDistinct.next()) {
+                    String value = rsDistinct.getString(1);
                     try {
-                        String s = mapping.get(key);
-                        Integer v = null;
-                        if (s != null) {
-                            v = new Integer(mapping.get(key));
-                        }
-
-                        if (min == null) min = v;
-                        if (max == null) max = v;
-
-                        if (v < min) min = v;
-                        if (v > max) max = v;
+                        Float f = Utils.convert(value);
+                        values.add(f);
                     } catch (Exception e) {
-
+                        System.out.println(value + " not mapped to float!");
                     }
                 }
 
-/*                for(String key:keys) {
+                Float min = Collections.min(values);
+                Float max = Collections.max(values);
 
-                    Integer v = mapping.get(key);
-                    v = (10 * v) / (max - min);
-                    mapping.put(key, v);
-                }
-*/
-                //System.out.println("> " + format);
-                Mapping m = new Mapping();
-                m.setMapping(mapping);
-                String format2 = format.split("\t")[0];
-                int ind = format2.indexOf(" ");
-                if (ind > -1) {
-                    format2 = format2.substring(ind+1, format2.length());
-                    //System.out.println("-" + format2);
-                    formatMapping.put(format2, m);
-                } else {
-                    break;
-                }
+                /*String query = "SELECT min(" + attributeName + ") AS MI, max(" + attributeName + ") as MA FROM DATA" +
+                        " WHERE " + attributeName + " NOT IN (" + Mapper.stopWordsAtt + ")";
+
+                System.out.println(query);
+
+                statement.execute(query);
+
+                ResultSet rs = statement.getResultSet();
+                rs.next();
+                minMax[0] = rs.getFloat("MI");
+                minMax[1] = rs.getFloat("MA");*/
+                minMax[0] = min;
+                minMax[1] = max;
             }
+
+        } catch (Exception e) {
         }
 
-        return formatMapping;
+        return minMax;
     }
 
     /**
@@ -341,7 +305,7 @@ public class Utils {
         ArrayList<Attribute> attributes = new ArrayList<Attribute>();
 
         Statement s = connection.createStatement();
-        boolean b = s.execute("SELECT arnum as id, name, type, length, format, substring(label from 0 for 100) as label FROM attributes");
+        boolean b = s.execute("SELECT arnum as id, lower(trim(name)) as name, type, length, format, substring(label from 0 for 100) as label FROM attributes");
         ResultSet rs = s.getResultSet();
 
         while(rs.next()) {
@@ -427,15 +391,85 @@ public class Utils {
             // ps.setString(2, cv.toString());
             // ps.execute();
 
-            System.out.println("Cluster " + cv.getClusterId() + ": " + cv.toString());
+            System.out.println("Cluster " + cv.getClusterId() + " (" + cv.points.size() + ") " + ": " + cv.toString());
 
             update = update.replace("#ALG", "" + cv.getClusterId());
             update = update.replace("#IDS", cv.toString());
-            System.out.println(update);
+            // System.out.println(update);
             s.execute(update);
         }
 
         System.out.println("Done.");
 
+    }
+
+
+    /**
+     *
+     * @param s
+     * @return
+     * @throws NumberFormatException
+     */
+    public static Float convert(String s) throws NumberFormatException {
+        Float f = null;
+        s = s.replace(">= ", "");
+        s = s.replace("< ", "");
+        try {
+            f = new Float(s);
+        } catch (Exception e) {
+            String tmp[] = s.split(" ");
+            String s2 = tmp[0].replace("+", "");
+            try {
+                f = new Float(s2);
+            } catch (Exception e2) {
+                //System.out.println("--------- CONVERTION DID NOT WORK FOR: " + s);
+                throw e;
+            }
+        }
+
+        return f;
+    }
+
+    /**
+     *
+     * @param connection
+     * @param query
+     * @return
+     */
+    public static Integer getRecordsCount(Connection connection, String query) {
+        Integer result = 0;
+
+        try {
+            Statement statement = connection.createStatement();
+            statement.execute(query);
+
+            ResultSet resultSet = statement.getResultSet();
+            resultSet.next();
+            result = resultSet.getInt(1);
+        } catch (SQLException e) {
+            e.printStackTrace();
+            System.exit(0);
+        }
+
+        return result;
+    }
+
+    /**
+     *
+     * @param connection
+     * @param algorithm
+     * @return
+     */
+    public static ArrayList<Integer> getClusters(Connection connection, String algorithm) throws SQLException {
+        ArrayList<Integer> result = new ArrayList<Integer>();
+        Statement statement = connection.createStatement();
+        statement.execute("SELECT DISTINCT " + algorithm + " FROM data WHERE " + algorithm + " > 0 ORDER BY " + algorithm);
+        ResultSet resultSet = statement.getResultSet();
+
+        while(resultSet.next()) {
+            result.add(resultSet.getInt(algorithm));
+        }
+
+        return result;
     }
 }

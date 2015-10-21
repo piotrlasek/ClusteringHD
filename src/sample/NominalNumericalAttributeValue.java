@@ -5,7 +5,7 @@ package sample;
  */
 public class NominalNumericalAttributeValue {
 
-    float numericalValue;
+    Float numericalValue;
     String nominalValue;
 
     boolean numerical; // 1 numerical, 0 nominal
@@ -20,6 +20,18 @@ public class NominalNumericalAttributeValue {
         }
     }
 
+    /**
+     * 
+     * @param nominalValue
+     * @param numericalValue
+     * @param numerical
+     */
+    public NominalNumericalAttributeValue(String nominalValue, Float numericalValue, boolean numerical) {
+        this.numericalValue = numericalValue;
+        this.nominalValue = nominalValue;
+        this.numerical = numerical;
+    }
+
     public float getFloat() {
         return numericalValue;
     }
@@ -31,5 +43,6 @@ public class NominalNumericalAttributeValue {
     public boolean isNumerical() {
         return numerical;
     }
+
 
 }

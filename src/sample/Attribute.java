@@ -12,6 +12,10 @@ public class Attribute {
     private String name;
     private String label;
 
+    public Attribute(Integer id, String name, String label) {
+       this.name = name;
+    }
+
     /**
      *
      * @param rs

@@ -144,7 +144,10 @@ public class KMeans extends DisplayClustering {
                 MyVector mv = dataset.get(i);
                 mv.setClusterId(clusterId);
 
-                cv.addPoint(mv);
+                throw new Exception("POPRAWIC");
+                //cv.addPoint(mv);
+
+
             }
         }
     }

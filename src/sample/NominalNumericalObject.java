@@ -1,6 +1,8 @@
 package sample;
 
-import java.lang.reflect.Array;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 /**
@@ -8,8 +10,13 @@ import java.util.ArrayList;
  */
 public class NominalNumericalObject {
 
-    ArrayList<NominalNumericalAttribute> nnAttributes;
+    int id;
+    ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to attributes list
     ArrayList<NominalNumericalAttributeValue> nnValues;
+    private ResultSet values;
+    ArrayList<NominalNumericalObject> neighbours;
+
+    public int clusterId = -1;
 
     /**
      * The constructor
@@ -17,6 +24,23 @@ public class NominalNumericalObject {
     public NominalNumericalObject() {
         nnAttributes = new ArrayList<NominalNumericalAttribute>();
         nnValues = new ArrayList<NominalNumericalAttributeValue>();
+    }
+
+    /**
+     *
+     * @param rs
+     * @throws SQLException
+     */
+    public NominalNumericalObject(ResultSet rs) throws SQLException {
+        id = rs.getInt("id");
+
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnsNumber = rsmd.getColumnCount();
+
+        for (NominalNumericalAttribute nna : nnAttributes) {
+            String value = rs.getString(nna.getName());
+            this.addValue(nna.getName(), value);
+        }
     }
 
     /**
@@ -40,7 +64,8 @@ public class NominalNumericalObject {
         for(int i = 0; i < attributesCount; i++) {
             NominalNumericalAttributeValue nnav1 = nnValues.get(i);
             NominalNumericalAttributeValue nnav2 = nnValues2.get(i);
-            if (nnav1.isNumerical()) {
+            if (nnav1.isNumerical() && nnav1.getFloat() != -1f &&
+                    nnav2.isNumerical() && nnav2.getFloat() != -1f) {
                 dist += Math.abs(nnav1.getFloat() - nnav2.getFloat());
             } else {
                 if (!nnav1.getString().equals(nnav2.getString())) {
@@ -76,6 +101,17 @@ public class NominalNumericalObject {
         nnValues.add(nnav);
     }
 
+
+    private void addValueNumerical(String attribute, String nominalValue, Float numericalValue) {
+        NominalNumericalAttribute nnaTmp = new NominalNumericalAttribute(attribute, false);
+        int index = nnAttributes.indexOf(nnaTmp);
+        NominalNumericalAttribute nna = nnAttributes.get(index);
+        NominalNumericalAttributeValue nnav = new NominalNumericalAttributeValue(nominalValue, numericalValue,
+            nna.getType());
+        nnValues.add(nnav);
+    }
+
+
     /**
      *
      * @param args
@@ -88,6 +124,7 @@ public class NominalNumericalObject {
         boolean[] types = new boolean[]{false, true, false};
 
         ArrayList<NominalNumericalAttribute> nnAttributes = new ArrayList<NominalNumericalAttribute>();
+
         for(int i = 0; i < attributes.length; i++) {
             NominalNumericalAttribute nna  = new NominalNumericalAttribute(attributes[i], types[i]);
             nnAttributes.add(nna);
@@ -129,5 +166,66 @@ public class NominalNumericalObject {
 
     }
 
+    /**
+     *
+     * @param rs
+     * @throws SQLException
+     */
+    public void setValues(ResultSet rs) throws SQLException {
+        id = rs.getInt("id");
 
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int columnsNumber = rsmd.getColumnCount();
+
+        for (NominalNumericalAttribute nna : nnAttributes) {
+            String value = rs.getString(nna.getName());
+
+            if (nna.getType() == true) {
+                // attribute is numerical
+                Float min = nna.getMin();
+                Float max = nna.getMax();
+
+                Float v = null;
+                Float numericalValue = -1.0f;
+
+                try {
+                    v = Utils.convert(value);
+                    numericalValue = (v - min) / (max - min);
+                } catch (NumberFormatException nfe) {
+                }
+
+
+                this.addValueNumerical(nna.getName(), value, numericalValue);
+            } else {
+                this.addValue(nna.getName(), value);
+            }
+        }
+    }
+
+    /**
+     *
+     * @param dataset
+     * @param eps
+     * @return
+     */
+    public ArrayList<NominalNumericalObject> getNeighbours(ArrayList<NominalNumericalObject> dataset,
+                                                           double eps) {
+        if (neighbours == null) {
+            neighbours = new ArrayList<NominalNumericalObject>();
+            for (NominalNumericalObject nno : dataset) {
+                if (nno.getId() != this.getId()) {
+                    float dist = this.distance(nno);
+                    if (dist < eps) {
+                        neighbours.add(nno);
+                    }
+                }
+            }
+        }
+
+        return neighbours;
+    }
+
+    public int getId() {
+        return id;
+    }
 }

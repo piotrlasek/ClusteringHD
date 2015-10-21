@@ -8,16 +8,16 @@ import java.util.Set;
  */
 public class Mapping {
 
-    HashMap<String, Integer> mapping; // key -> attribute value, value -> numerical (integer) value
+    HashMap<String, String> mapping; // key -> attribute value, value -> numerical (integer) value
 
     /**
      *
      */
     public Mapping() {
-        mapping = new HashMap<String, Integer>();
+        mapping = new HashMap<String, String>();
     }
 
-    public void setMapping(HashMap<String, Integer> mapping) {
+    public void setMapping(HashMap<String, String> mapping) {
         this.mapping = mapping;
     }
 
@@ -35,8 +35,8 @@ public class Mapping {
      * @return
      * @throws Exception
      */
-    public Integer getNewValue(String oldValue) throws Exception {
-        Integer result = null;
+    public String getNewValue(String oldValue) throws Exception {
+        String result = null;
         if (mapping.containsKey(oldValue)) {
             result = mapping.get(oldValue);
         } else {
@@ -45,7 +45,7 @@ public class Mapping {
         return result;
     }
 
-    public void addNewMapping(String oldValue, Integer newValue) {
+    public void addNewMapping(String oldValue, String newValue) {
         mapping.put(oldValue, newValue);
     }
 }

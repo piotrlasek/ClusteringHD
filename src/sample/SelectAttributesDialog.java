@@ -32,13 +32,19 @@ public class SelectAttributesDialog extends JDialog {
         private String description;
         private boolean used;
         String format;
+        private Float min;
+        private Float max;
+        private boolean numerical;
 
-        public Attribute(int id, String name, String description, String format) {
+        public Attribute(int id, String name, String description, String format, Float min, Float max, boolean numerical) {
             this.id = id;
             this.setName(name);
             this.setDescription(description);
             this.used = true;
             this.format = format;
+            this.min = min;
+            this.max = max;
+            this.numerical = numerical;
         }
 
         public String getName() {
@@ -67,6 +73,18 @@ public class SelectAttributesDialog extends JDialog {
 
         public void setUsed(boolean used) {
             this.used = used;
+        }
+
+        public Float getMin() {
+            return min;
+        }
+
+        public Float getMax() {
+            return max;
+        }
+
+        public boolean isNumerical() {
+            return numerical;
         }
     }
 
@@ -126,10 +144,15 @@ public class SelectAttributesDialog extends JDialog {
                     o = attributes.get(rowIndex).isUsed();
                     break;
                 case 1:
-                    o = attributes.get(rowIndex).getFormat();
+                    o = attributes.get(rowIndex).getName();
                     break;
                 case 2: // o = "" + rowIndex + ", " + columnIndex;
-                    o = attributes.get(rowIndex).getName();
+                    //o = attributes.get(rowIndex).getName();
+                    if (attributes.get(rowIndex).isNumerical()) {
+                        o = "N";
+                    } else {
+                        o = "";
+                    }
                     break;
                 case 3:
                     o = attributes.get(rowIndex).getDescription();
@@ -159,7 +182,7 @@ public class SelectAttributesDialog extends JDialog {
     /**
      *
      */
-    public SelectAttributesDialog(String attributesList, Connection connection) {
+    public SelectAttributesDialog(String attributesList, String exclude, Connection connection) {
 
         setSize(500, 750);
         setContentPane(contentPane);
@@ -196,9 +219,20 @@ public class SelectAttributesDialog extends JDialog {
 
         try {
             Statement statement = connection.createStatement();
-            String sql =
-                    "SELECT trim(name) as name, trim(label) as description, trim(format) as format " +
-                    "FROM attributes WHERE name in (" + attributesList + ")";
+            String sql;
+            if (attributesList.equals("*")) {
+                sql =
+                        "SELECT trim(name) as name, trim(label) as description, trim(format) as format, " +
+                                "numerical, min, max " +
+                                "FROM attributes " +
+                                "WHERE name NOT IN ( " + exclude +" )";
+            } else {
+                sql =
+                        "SELECT trim(name) as name, trim(label) as description, trim(format) as format " +
+                                "numerical, min, max " +
+                                "FROM attributes WHERE name in (" + attributesList + ") " +
+                                "AND NAME NOT IN ( " + exclude + ")";
+            }
             //System.out.println(sql);
             statement.execute(sql);
             ResultSet rs = statement.getResultSet();
@@ -207,7 +241,10 @@ public class SelectAttributesDialog extends JDialog {
                 String name = rs.getString("name");
                 String description = rs.getString("description");
                 String format = rs.getString("format");
-                Attribute a = new Attribute(id++, name, description, format);
+                Float min = rs.getFloat("min");
+                Float max = rs.getFloat("max");
+                boolean numerical = rs.getBoolean("numerical");
+                Attribute a = new Attribute(id++, name, description, format, min, max, numerical);
                 attributes.add(a);
             }
         } catch (SQLException e) {
@@ -244,6 +281,36 @@ public class SelectAttributesDialog extends JDialog {
      */
     public String getResult() {
         return result;
+    }
+
+    /**
+     *
+     * @return
+     */
+    public ArrayList<sample.Attribute> getAttributes() {
+
+        ArrayList<sample.Attribute> selected = new ArrayList<sample.Attribute>();
+        for(Attribute a : attributes) {
+            //System.out.println(a.getName() + ": " + a.isUsed());
+            if (a.isUsed()) {
+                selected.add(new sample.Attribute(null, a.getName(), null));
+            }
+        }
+        return selected;
+    }
+
+    public ArrayList<NominalNumericalAttribute> getNominalNumericalAttributes() {
+        ArrayList<NominalNumericalAttribute> selected = new ArrayList<NominalNumericalAttribute>();
+        for(Attribute a : attributes) {
+            //System.out.println(a.getName() + ": " + a.isUsed());
+            if (a.isUsed()) {
+                NominalNumericalAttribute nna = new NominalNumericalAttribute(
+                        a.getName(), a.isNumerical(), a.getMin(), a.getMax());
+
+                selected.add(nna);
+            }
+        }
+        return selected;
     }
 
     public String getAlgorithm() {

@@ -6,17 +6,24 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 
+import javax.swing.*;
 import java.io.*;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 /**
  * Created by Piotr Lasek on 15-04-17.
  */
 public class Main extends Application {
+
+    public static int limit = 17000;
+
     static {
-        DbScanVec.Eps = 0.1;
-        DbScanVec.MinPts = 80;
+        DbScanVec.Eps = 0.08;
+        DbScanVec.MinPts = 150;
     }
 
     public static String filePrefix = "C:\\Users\\Piotr\\Dropbox\\PROJECTS\\DIABETIC\\diabetic-D-10k-03-25-all";
@@ -112,12 +119,23 @@ public class Main extends Application {
      */
     public static void main(String[] args) throws Exception {
 
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+
         Class.forName("org.postgresql.Driver");
         String url = "jdbc:postgresql://us/diabetic";
         Properties props = new Properties();
         props.setProperty("user","piotr");
         props.setProperty("password", "piotr");
         Connection conn = DriverManager.getConnection(url, props);
+
+        // -----------------------------------------------------------------------
+        // Determines which attributes are numerical or nominal.
+        // For numerical determines max and min values.
+        //
+        // ArrayList<NominalNumericalAttribute> nnAttributes = Utils.getNominalNumericalAttributes(conn);
+
+        // -----------------------------------------------------------------------
+        // GENERATE QUERY START
 
         String tableName = "segments";
         String attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV'," +
@@ -134,50 +152,99 @@ public class Main extends Application {
         String algorithm = "";
 
         // Creates a mapped table segments_map based on original table segments.
-        attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH'," +
+        /*attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH'," +
                 "'CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2','GENGSWL'," +
                 "'GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6','SPV_6B'," +
                 "'SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
-        try {
-            Utils.generateQuery(conn, tableName, attributes);
-        } catch (Exception e) {
-            e.printStackTrace();
+        */
+        attributes = "*";
+
+        // --------------------------------------------------------------------------
+        // NOT USED
+        // Map data
+
+        if (false) {
+
+            try {
+                Mapper.mapTable(conn, tableName, attributes);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
-        if (true) return;
-        // !!!!!
+        ArrayList<NominalNumericalObject> dataset = new ArrayList<NominalNumericalObject>();
 
-        SelectAttributesDialog sad = new SelectAttributesDialog(attributes, conn);
-        sad.setVisible(true);
-        attributes = sad.getResult();
-        algorithm = sad.getAlgorithm();
+        // Load data
 
-        System.out.println("Selected attributes: " + attributes);
+        SelectAttributesDialog sad;
 
-        ArrayList<MyVector> dataset = new ArrayList<MyVector>();
+        if (true) {
 
-        Statement statementGetBitRecords = conn.createStatement();
+            // GENERATE QUERY END
+            // -----------------------------------------------------------------------
 
-        System.out.println("Reading data from DB... ");
-        String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map";
-        statementGetBitRecords.execute(query);
-        System.out.println("Done.");
+            String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
+            sad = new SelectAttributesDialog(attributes, exclude, conn);
+            sad.setVisible(true);
+            attributes = sad.getResult();
+            algorithm = sad.getAlgorithm();
 
-        ResultSet resultSetBitRecords = statementGetBitRecords.getResultSet();
+            System.out.println("Selected attributes: " + attributes);
 
-        int count = 0;
+            Statement statementGetBitRecords = conn.createStatement();
 
-        System.out.println("Constructing an array of bit vectors... ");
+            /*
+            System.out.println("Reading data from DB... ");
 
-        while(resultSetBitRecords.next()) {
-            MyVector mbs = new MyVector(resultSetBitRecords);
-            dataset.add(mbs);
-            count++;
+            //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
+            String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR ccc_121 = 'YES'  LIMIT " + Main.limit;
+
+            statementGetBitRecords.execute(query);
+            System.out.println("Done.");
+
+            ResultSet resultSetBitRecords = statementGetBitRecords.getResultSet();
+
+            int count = 0;
+
+            System.out.println("Constructing an array of bit vectors... ");
+
+
+            // ArrayList<Attribute> attributesList = sad.getAttributes();
+            ArrayList<NominalNumericalAttribute> nominalNumericalAttributes = sad.getNominalNumericalAttributes();
+
+            while (resultSetBitRecords.next()) {
+                NominalNumericalObject nno = new NominalNumericalObject();
+                nno.addAttributes(nominalNumericalAttributes);
+                nno.setValues(resultSetBitRecords);
+
+                // MyVector mbs = new MyVector(resultSetBitRecords);
+                dataset.add(nno);
+                count++;
+            }
+
+            System.out.print("Done.\n");*/
         }
 
-        System.out.print("Done.\n");
+        // -----------------------------------------------------------------------------------
+        // VISUALIZE
 
-        ArrayList<ClusterVect> clusters;
+        ClusterVisualizer cv = new ClusterVisualizer(conn, sad.getNominalNumericalAttributes());
+        cv.prepareColors(conn);
+        cv.prepareWeights(conn);
+        cv.showClusters();
+
+        // -----------------------------------------------------------------------------------
+        // CLUSTERING START
+
+        if (true) {
+            System.out.println("QUIT");
+            //System.exit(0);
+            return;
+        }
+
+        System.out.println("abc");
+
+        ArrayList<ClusterVect> clusters = null;
 
         long start = System.currentTimeMillis();
 
@@ -189,11 +256,11 @@ public class Main extends Application {
             dbscan.run();
             clusters = dbscan.getClusters();
         } else if ("KMEANS".equals(algorithm)) {
-            int k = 7;
+            /*int k = 7;
             KMeans kmeans = new KMeans(dataset, k);
             System.out.println("k: " + k);
             kmeans.run();
-            clusters = kmeans.getClusters();
+            clusters = kmeans.getClusters();*/
         } else {
             throw new Exception("Unknown algorithm");
         }
@@ -204,6 +271,9 @@ public class Main extends Application {
         System.out.println("Run-time: " + ((end - start) / 1000) + " s");
         System.out.println("---------------------------------------------------");
         Utils.saveClusters(tableName, clusters, conn, algorithm);
+
+        // CLUSTERING END
+        // -----------------------------------------------------------------------------------
 
         // prepare visualization
        // Main.visualize(conn);
