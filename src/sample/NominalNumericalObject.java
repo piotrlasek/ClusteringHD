@@ -101,7 +101,6 @@ public class NominalNumericalObject {
         nnValues.add(nnav);
     }
 
-
     private void addValueNumerical(String attribute, String nominalValue, Float numericalValue) {
         NominalNumericalAttribute nnaTmp = new NominalNumericalAttribute(attribute, false);
         int index = nnAttributes.indexOf(nnaTmp);

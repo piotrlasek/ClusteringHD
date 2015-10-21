@@ -8,10 +8,7 @@ import javafx.stage.Stage;
 
 import javax.swing.*;
 import java.io.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 /**
@@ -122,7 +119,7 @@ public class Main extends Application {
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
         Class.forName("org.postgresql.Driver");
-        String url = "jdbc:postgresql://us/diabetic";
+        String url = "jdbc:postgresql://192.168.56.102/diabetic";
         Properties props = new Properties();
         props.setProperty("user","piotr");
         props.setProperty("password", "piotr");
@@ -176,53 +173,18 @@ public class Main extends Application {
 
         // Load data
 
+        String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
         SelectAttributesDialog sad;
+        sad = new SelectAttributesDialog(attributes, exclude, conn);
+        sad.setVisible(true);
+        attributes = sad.getResult();
+        algorithm = sad.getAlgorithm();
+
 
         if (true) {
-
-            // GENERATE QUERY END
+            // Generate query to get data and get it.
             // -----------------------------------------------------------------------
-
-            String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
-            sad = new SelectAttributesDialog(attributes, exclude, conn);
-            sad.setVisible(true);
-            attributes = sad.getResult();
-            algorithm = sad.getAlgorithm();
-
-            System.out.println("Selected attributes: " + attributes);
-
-            Statement statementGetBitRecords = conn.createStatement();
-
-            /*
-            System.out.println("Reading data from DB... ");
-
-            //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
-            String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR ccc_121 = 'YES'  LIMIT " + Main.limit;
-
-            statementGetBitRecords.execute(query);
-            System.out.println("Done.");
-
-            ResultSet resultSetBitRecords = statementGetBitRecords.getResultSet();
-
-            int count = 0;
-
-            System.out.println("Constructing an array of bit vectors... ");
-
-
-            // ArrayList<Attribute> attributesList = sad.getAttributes();
-            ArrayList<NominalNumericalAttribute> nominalNumericalAttributes = sad.getNominalNumericalAttributes();
-
-            while (resultSetBitRecords.next()) {
-                NominalNumericalObject nno = new NominalNumericalObject();
-                nno.addAttributes(nominalNumericalAttributes);
-                nno.setValues(resultSetBitRecords);
-
-                // MyVector mbs = new MyVector(resultSetBitRecords);
-                dataset.add(nno);
-                count++;
-            }
-
-            System.out.print("Done.\n");*/
+            // dataset = Utils.readData(conn, attributes, sad.getNominalNumericalAttributes(), exclude);
         }
 
         // -----------------------------------------------------------------------------------

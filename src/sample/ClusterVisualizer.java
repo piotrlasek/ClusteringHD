@@ -46,7 +46,10 @@ public class ClusterVisualizer {
             }
             System.out.println("Object deserialized.");
 
-            ClustersFrame cf = new ClustersFrame(new MyCanvas(data));
+            MyCanvas myCanvas = new MyCanvas(data, attributes );
+            ClustersFrame cf = new ClustersFrame(myCanvas);
+            myCanvas.setClusterFrame(cf);
+
             cf.setSize(800, 600);
             //cf.pack();
             cf.setVisible(true);

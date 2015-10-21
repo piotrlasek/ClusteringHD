@@ -10,6 +10,7 @@ import java.sql.Statement;
 public class NominalNumericalAttribute {
 
     private String name;
+    private String description;
     boolean type; // true -- number, false -- text
     private Float min;
     private Float max;
@@ -25,11 +26,12 @@ public class NominalNumericalAttribute {
         this.type = type;
     }
 
-    NominalNumericalAttribute(String name, boolean type, Float min, Float max) {
+    NominalNumericalAttribute(String name, boolean type, String description, Float min, Float max) {
         this.setName(name);
         this.type = type;
         this.min = min;
         this.max = max;
+        this.description = description;
     }
 
     /**
@@ -103,5 +105,13 @@ public class NominalNumericalAttribute {
 
         //System.out.println(query);
         statement.execute(query);
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 }

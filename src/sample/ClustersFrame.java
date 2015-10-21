@@ -12,6 +12,10 @@ public class ClustersFrame extends JFrame {
     private JScrollPane scrollPane;
     private JSlider slider1;
     private JButton button1;
+    private JSlider slider2;
+    private JButton clearButton;
+    private JLabel infoLabel;
+    private JTextArea textArea1;
     private MyCanvas myCanvas;
 
     public ClustersFrame(MyCanvas myCanvas) {
@@ -62,6 +66,24 @@ public class ClustersFrame extends JFrame {
                 myCanvas.setZoom((float) slider1.getValue() / 100);
                 myCanvas.updateUI();
                 myCanvas.repaint();
+                scrollPane.revalidate();
+                scrollPane.repaint();
+            }
+        });
+        slider2.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                myCanvas.setAttributeWidth((float) slider2.getValue());
+                myCanvas.repaint();
+                scrollPane.revalidate();
+                scrollPane.repaint();
+            }
+        });
+        clearButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+
             }
         });
     }
@@ -70,6 +92,7 @@ public class ClustersFrame extends JFrame {
 // add your code here
         dispose();
     }
+
 
     private void onCancel() {
 // add your code here if necessary
@@ -81,5 +104,13 @@ public class ClustersFrame extends JFrame {
         //myCanvas.setPreferredSize(new Dimension(6000, 4000));
         scrollPane = new JScrollPane(myCanvas);
 
+    }
+
+    public void updateAttributeInfo(String desc) {
+        infoLabel.setText(desc);
+    }
+
+    public void saveAttributeInfo(String desc) {
+        textArea1.setText(textArea1.getText() + "\n\r" + desc);
     }
 }

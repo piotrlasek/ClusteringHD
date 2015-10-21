@@ -305,7 +305,7 @@ public class SelectAttributesDialog extends JDialog {
             //System.out.println(a.getName() + ": " + a.isUsed());
             if (a.isUsed()) {
                 NominalNumericalAttribute nna = new NominalNumericalAttribute(
-                        a.getName(), a.isNumerical(), a.getMin(), a.getMax());
+                        a.getName(), a.isNumerical(), a.getDescription(), a.getMin(), a.getMax());
 
                 selected.add(nna);
             }

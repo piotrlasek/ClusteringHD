@@ -9,5 +9,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="postgresql:postgresql:9.2-1002.jdbc4" level="project" />
     <orderEntry type="library" name="org.apache.mahout:mahout-core:0.9" level="project" />
+    <orderEntry type="library" name="org.apache.mahout:mahout-core:0.91" level="project" />
+    <orderEntry type="library" name="postgresql:postgresql:9.2-1002.jdbc41" level="project" />
   </component>
 </module>

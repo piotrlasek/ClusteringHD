@@ -472,4 +472,54 @@ public class Utils {
 
         return result;
     }
+
+    /**
+     *
+     * @return
+     */
+    public static ArrayList<NominalNumericalObject> readData(Connection conn, String attributes,  ArrayList<NominalNumericalAttribute> nominalNumericalAttributes, String exclude) throws SQLException {
+
+        ArrayList<NominalNumericalObject> dataset = new ArrayList();
+
+        System.out.println("Selected attributes: " + attributes);
+
+        Statement statementGetBitRecords = null;
+        try {
+            statementGetBitRecords = conn.createStatement();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Reading data from DB... ");
+
+        //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
+        String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR ccc_121 = 'YES' LIMIT " + Main.limit;
+
+        statementGetBitRecords.execute(query);
+        System.out.println("Done.");
+
+        ResultSet resultSetBitRecords;
+        resultSetBitRecords = statementGetBitRecords.getResultSet();
+
+        int count = 0;
+
+        System.out.println("Constructing an array of bit vectors... ");
+
+        // ArrayList<Attribute> attributesList = sad.getAttributes();
+        // ArrayList<NominalNumericalAttribute> nominalNumericalAttributes = ;
+
+        while (resultSetBitRecords.next()) {
+            NominalNumericalObject nno = new NominalNumericalObject();
+            nno.addAttributes(nominalNumericalAttributes);
+            nno.setValues(resultSetBitRecords);
+
+            // MyVector mbs = new MyVector(resultSetBitRecords);
+            dataset.add(nno);
+            count++;
+        }
+
+        System.out.print("Done.\n");
+
+        return dataset;
+    }
 }
