@@ -193,13 +193,14 @@ public class Main extends Application {
         ClusterVisualizer cv = new ClusterVisualizer(conn, sad.getNominalNumericalAttributes());
         cv.prepareColors(conn);
         cv.prepareWeights(conn);
+
         cv.showClusters();
 
         // -----------------------------------------------------------------------------------
         // CLUSTERING START
 
         if (true) {
-            System.out.println("QUIT");
+            System.out.println("Main, 202: QUIT");
             //System.exit(0);
             return;
         }

@@ -1,8 +1,8 @@
 package sample;
 
 import java.io.*;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Created by Piotr Lasek on 10/16/2015.
@@ -122,6 +122,22 @@ public class TripleHashMap<K1, K2, V> implements Serializable {
 
     /**
      *
+     * @return
+     */
+    public List<K1> keySetSorted() {
+        List<K1> keys = new ArrayList<K1>();
+
+        Iterator<Map.Entry<K1, Integer>> sortedKeySet = sortByCount(this);
+
+        while(sortedKeySet.hasNext()) {
+            keys.add(sortedKeySet.next().getKey());
+        }
+
+        return keys;
+    }
+
+    /**
+     *
      * @param key
      * @return
      */
@@ -138,5 +154,27 @@ public class TripleHashMap<K1, K2, V> implements Serializable {
         return result;
     }
 
+     /**
+     *
+     * @param ssf
+     * @return
+     */
+    private Iterator<Map.Entry<K1, Integer>> sortByCount(TripleHashMap<K1, K2, V> ssf) {
 
+        HashMap<K1, Integer> attributeValuesCount = new HashMap();
+
+        Set<K1> attributes = ssf.keySet();
+
+            for(K1 attribute : attributes) {
+                Set<K2> values = ssf.subKeySet(attribute);
+                attributeValuesCount.put(attribute, values.size());
+            }
+
+            Stream<HashMap.Entry<K1, Integer>> sortedAttVal =
+                attributeValuesCount.entrySet().stream().sorted(HashMap.Entry.comparingByValue());
+
+        Iterator<HashMap.Entry<K1, Integer>> sorterAttValIt = sortedAttVal.iterator();
+
+        return sorterAttValIt;
+    }
 }

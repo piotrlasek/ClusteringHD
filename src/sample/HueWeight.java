@@ -39,7 +39,7 @@ public class HueWeight implements Serializable, Comparable {
     public boolean equals(Object o) {
         HueWeight hw = (HueWeight) o;
         boolean result = false;
-        if (hw.getHue() == getHue() && hw.getWeight() == hw.getWeight()) {
+        if (hw.getWeight() == hw.getWeight()) {
             result = true;
         }
         return result;
@@ -49,15 +49,20 @@ public class HueWeight implements Serializable, Comparable {
     public int compareTo(Object o) {
         HueWeight hw = (HueWeight) o;
 
+        /*
         int result = 0;
 
-        if (this.getWeight() > hw.getWeight()) {
+        if (this.getWeight() == hw.getWeight()) {
+            result = 0;
+        } else  if (this.getWeight() > hw.getWeight()) {
             result = 1;
         } else {
             result = -1;
         }
+        */
+        float diff = this.getWeight() - hw.getWeight();
 
-        return result;
+        return (int) (10 * diff);
     }
 
     public void setDescription(String description) {

@@ -5,10 +5,8 @@ import javax.swing.event.MouseInputListener;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Set;
+import java.util.*;
+import java.util.List;
 
 /**
  * Created by Piotr Lasek on 10/16/2015.
@@ -18,6 +16,7 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     private final ArrayList<NominalNumericalAttribute> attributes;
     private HashMap<String, String> attributeDescription;
     ArrayList<TripleHashMap<String, String, HueWeight>> data;
+    private TripleHashMap<String, String, Float> attributeValueHue;
     TripleHashMap<Integer, Integer, String> descriptions;
     Dimension preferredSize;
     float zoom = 1.0f;
@@ -26,13 +25,14 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     ClustersFrame clustersFrame;
 
     /**
-     *
-     * @param data
+     *  @param data
      * @param attributes
+     * @param attributeValueHue
      */
     public MyCanvas(ArrayList<TripleHashMap<String, String, HueWeight>> data,
-                    ArrayList<NominalNumericalAttribute> attributes) {
+                    ArrayList<NominalNumericalAttribute> attributes, TripleHashMap<String, String, Float> attributeValueHue) {
         this.data = data;
+        this.attributeValueHue = attributeValueHue;
         this.addMouseMotionListener(this);
         this.addMouseListener(this);
         this.attributes = attributes;
@@ -51,11 +51,17 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
        this.zoom = zoom;
     }
 
+
     /**
      *
      * @param g
      */
     public void paint(Graphics g) {
+
+        Color white = Color.white;
+        g.setColor(white);
+        g.fillRect(0, 0, getPreferredSize().width, getPreferredSize().height);
+
         float clusterOffset = 0f;
         float xOffset = 20f;
         float yOffset = 20f;
@@ -65,14 +71,21 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
         float attributeIndex = 0f;
         descriptions = new TripleHashMap<>();
 
+        List<String> attributesSorted = attributeValueHue.keySetSorted();
+
         for (TripleHashMap<String, String, HueWeight> sshw : data) {
 
             Set<String> attributes = sshw.keySet();
+
             attributeIndex = 0;
 
-            for (String attribute : attributes) {
-                valueIndex = 0;
+  //          Set<String> attributes = sshw.keySetSorted();
 
+            //for (String attribute : attributes) {
+           for (int xxx = 0; xxx < attributesSorted.size(); xxx++) {
+                String attribute = attributesSorted.get(attributesSorted.size() - xxx - 1);
+
+                valueIndex = 0;
                 Set<String> values = sshw.subKeySet(attribute);
 
                 ArrayList<HueWeight> hueWeights = new ArrayList();
@@ -95,7 +108,7 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
 
                     String value = hw.getDescription();
 
-                    if (value.equals("N/A")) {
+                    if (value.equals("N/A") || value.equals("N/S")) {
                         saturation = 0.2f;
                         brighteness = 1f;
                     }
@@ -126,8 +139,7 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
             clusterOffset += height + 2*yOffset ;
         }
 
-        System.out.println("attributeIndex: " + attributeIndex);
-        preferredSize.setSize(zoom*(attributeIndex+2*width), zoom*(clusterOffset+yOffset));
+        preferredSize.setSize(zoom*(attributeIndex+3*width), zoom*(clusterOffset+2*yOffset));
     }
 
     @Override

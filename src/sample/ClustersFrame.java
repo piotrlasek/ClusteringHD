@@ -11,17 +11,17 @@ public class ClustersFrame extends JFrame {
     private JButton buttonCancel;
     private JScrollPane scrollPane;
     private JSlider slider1;
-    private JButton button1;
     private JSlider slider2;
     private JButton clearButton;
     private JLabel infoLabel;
     private JTextArea textArea1;
+    private JCheckBox removeSameValuesAttributesCheckBox;
+    private JCheckBox sortByValuesCountCheckBox;
     private MyCanvas myCanvas;
 
     public ClustersFrame(MyCanvas myCanvas) {
         this.myCanvas = myCanvas;
         setContentPane(contentPane);
-        //setModal(true);
         getRootPane().setDefaultButton(buttonOK);
 
         buttonOK.addActionListener(new ActionListener() {
@@ -50,14 +50,6 @@ public class ClustersFrame extends JFrame {
                 onCancel();
             }
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-        button1.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                super.mouseClicked(e);
-
-                //myCanvas.setZoom();
-            }
-        });
         slider1.addComponentListener(new ComponentAdapter() {
         });
         slider1.addPropertyChangeListener(new PropertyChangeListener() {
@@ -102,6 +94,7 @@ public class ClustersFrame extends JFrame {
     private void createUIComponents() {
         // TODO: place custom component creation code here
         //myCanvas.setPreferredSize(new Dimension(6000, 4000));
+//        canvasPane.add(myCanvas);
         scrollPane = new JScrollPane(myCanvas);
 
     }

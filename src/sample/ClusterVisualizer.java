@@ -46,18 +46,18 @@ public class ClusterVisualizer {
             }
             System.out.println("Object deserialized.");
 
-            MyCanvas myCanvas = new MyCanvas(data, attributes );
+            MyCanvas myCanvas = new MyCanvas(data, attributes, attributeValueHue );
             ClustersFrame cf = new ClustersFrame(myCanvas);
             myCanvas.setClusterFrame(cf);
-
             cf.setSize(800, 600);
-            //cf.pack();
+            cf.pack();
             cf.setVisible(true);
           //  frame.setSize(600, 800);
           //  frame.setContentPane(new MyCanvas(attributeValueHueWeight));
           //  frame.setVisible(true);
         } catch (Exception e) {
             System.out.println("Deserialization did not work. Creating new object...");
+            e.printStackTrace();
         }
     }
 
@@ -135,6 +135,8 @@ public class ClusterVisualizer {
         }
     }
 
+
+
     /**
      *
      * @param connection
@@ -152,6 +154,8 @@ public class ClusterVisualizer {
             }
         }
 
+        // sort attributes by count
+
         if (attributeValueHue == null || attributeValueHue.size() != attributes.size()) {
             attributeValueHue = new TripleHashMap<>();
 
@@ -161,6 +165,9 @@ public class ClusterVisualizer {
             System.out.print("Preparing colors for: ");
 
             for (NominalNumericalAttribute a : attributes) {
+
+            // while(attCount.hasNext()) {
+                //String attribute = attCount.next().getKey();
                 String attribute = a.getName();
 
                 String query = "SELECT " + attribute + ", COUNT(" + attribute + ") as CNT " +
@@ -202,6 +209,7 @@ public class ClusterVisualizer {
                     attributeValueHue.put(attribute, value, hue);
                     hue += hueDelta;
                 }
+
             /*}*/
             }
 
