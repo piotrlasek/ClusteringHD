@@ -52,9 +52,7 @@ public class DBSCAN {
      * @return
      */
     public ArrayList<MyBitSet> ExpandCluster(ArrayList<MyBitSet> set, MyBitSet point, int clusterId) {
-
         ArrayList<MyBitSet> clusterPoints = new ArrayList<MyBitSet>();
-
         ArrayList<MyBitSet> seeds = point.getNeighbours(getDataset(), getEps());
 
         if (seeds.size() < getMinPts()) {
@@ -62,7 +60,6 @@ public class DBSCAN {
             getNoise().add(point);
         } else {
             point.setNeighboursClusterId(clusterId);
-
             clusterPoints.add(point);
             clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
 

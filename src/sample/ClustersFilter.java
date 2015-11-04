@@ -1,30 +1,61 @@
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package sample;
 
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.PathFilter;
+import java.util.ArrayList;
+import java.util.Set;
 
-final class ClustersFilter implements PathFilter {
+/**
+ *
+ */
+public class ClustersFilter {
 
-    @Override
-    public boolean accept(Path path) {
-        String pathString = path.toString();
-        return pathString.contains("/clusters-");
+    ArrayList<TripleHashMap<String, String, HueWeight>> data;
+
+    public ClustersFilter(ArrayList<TripleHashMap<String, String, HueWeight>> data) {
+        this.data = data;
     }
+
+    /**
+     *
+     * @return
+     */
+    public ArrayList<String> filterSameValues() {
+        ArrayList<String> filteredAttributes = new ArrayList<>();
+        TripleHashMap<String, String, Float> thmTmp = new TripleHashMap<>();
+        Set<String> attributes = data.get(0).keySet();
+
+        // iterate through all attributes
+        for(String attribute : attributes) {
+            boolean attributeHasSameValues = true;
+            for(TripleHashMap<String, String, HueWeight> thmCluster : data) {
+                Set<String> valuesKeys = thmCluster.subKeySet(attribute);
+
+                if (!thmTmp.keySet().contains(attribute)) {
+                    // initializing thmTmp with the currently processed attribute
+                    for (String vk : valuesKeys) {
+                        HueWeight hw = thmCluster.get(attribute, vk);
+                        thmTmp.put(attribute, vk, hw.getWeight());
+                    }
+                } else {
+                    // Checking if "next" cluster has same values on the same attribute
+                    for(String vk : valuesKeys) {
+                        HueWeight hw = thmCluster.get(attribute, vk);
+                        Float v1 = hw.getWeight();
+                        Float v2 = thmTmp.get(attribute, vk);
+
+                        if (v1 == null || !v1.equals(v2)) {
+                            attributeHasSameValues = false;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (attributeHasSameValues) {
+               filteredAttributes.add(attribute);
+            }
+        }
+
+        return filteredAttributes;
+    }
+
 }

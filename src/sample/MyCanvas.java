@@ -5,6 +5,7 @@ import javax.swing.event.MouseInputListener;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 
@@ -21,8 +22,13 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     Dimension preferredSize;
     float zoom = 1.0f;
     float attributeWidth = 2;
-
+    ClustersFilter clustersFilter = null;
+    ArrayList<String> filteredAttributes = null;
     ClustersFrame clustersFrame;
+    private boolean removeSame;
+
+    BufferedImage bufferedImage;
+
 
     /**
      *  @param data
@@ -40,7 +46,11 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
         for(NominalNumericalAttribute nna : attributes) {
             attributeDescription.put(nna.getName(), nna.getDescription());
         }
+        clustersFilter = new ClustersFilter(data);
+        filteredAttributes = clustersFilter.filterSameValues();
         preferredSize = new Dimension(100, 100);
+
+        createImage();
     }
 
     /**
@@ -48,19 +58,29 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
      * @param zoom
      */
     public void setZoom(float zoom) {
+
        this.zoom = zoom;
+
+        createImage();
+
+        /*
+
+        try {
+            Graphics2D graphics2D = drawableImage.createGraphics();
+            AffineTransform xform = AffineTransform.getScaleInstance(zoom, zoom);
+            graphics2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graphics2D.drawImage(bufferedImage, xform, null);
+            //graphics2D.drawImage(bufferedImage, 0, 0, null);
+            graphics2D.dispose();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+*/
     }
 
-
-    /**
-     *
-     * @param g
-     */
-    public void paint(Graphics g) {
-
-        Color white = Color.white;
-        g.setColor(white);
-        g.fillRect(0, 0, getPreferredSize().width, getPreferredSize().height);
+    public void createImage() {
 
         float clusterOffset = 0f;
         float xOffset = 20f;
@@ -73,17 +93,35 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
 
         List<String> attributesSorted = attributeValueHue.keySetSorted();
 
+        float wi = ((width + 3) * attributesSorted.size());
+        float hi = ((2*height + 5) * data.size());
+
+        bufferedImage = new BufferedImage((int) wi, (int) hi, BufferedImage.TYPE_INT_ARGB);
+
+        Graphics g = bufferedImage.getGraphics();
+
+        Color white = Color.white;
+        g.setColor(white);
+        g.fillRect(0, 0, getPreferredSize().width, getPreferredSize().height);
+
+        System.out.println("Clusters: " + data.size());
+
         for (TripleHashMap<String, String, HueWeight> sshw : data) {
 
             Set<String> attributes = sshw.keySet();
 
             attributeIndex = 0;
 
-  //          Set<String> attributes = sshw.keySetSorted();
+            //          Set<String> attributes = sshw.keySetSorted();
 
             //for (String attribute : attributes) {
-           for (int xxx = 0; xxx < attributesSorted.size(); xxx++) {
+            for (int xxx = 0; xxx < attributesSorted.size(); xxx++) {
                 String attribute = attributesSorted.get(attributesSorted.size() - xxx - 1);
+
+               /*if (filteredAttributes.contains(attribute)) {
+                   System.out.println("Pomijam: " + attribute);
+                   continue;
+               }*/
 
                 valueIndex = 0;
                 Set<String> values = sshw.subKeySet(attribute);
@@ -105,14 +143,31 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
 
                     float saturation = 1;
                     float brighteness = 1;
+                    float hue = hw.getHue() + 0.5f;
+                    hue = hue % 1;
 
                     String value = hw.getDescription();
 
-                    if (value.equals("N/A") || value.equals("N/S")) {
-                        saturation = 0.2f;
-                        brighteness = 1f;
+                    if (value.equals("N/A")) {
+                        saturation = 0.0f;
+                        brighteness = 0.9f;
+                        hue = 0.0f;
+                    } else if (value.equals("N/S")) {
+                        saturation = 0.0f;
+                        brighteness = 0.8f;
+                        hue = 0.0f;
+                    } else if (value.equals("NO")) {
+                        saturation = 0.5f;
+                        brighteness = 0.9f;
+                        hue = 1.0f;
+                    } else if (value.equals("YES")) {
+                        saturation = 0.5f;
+                        brighteness = 0.9f;
+                        hue = 0.2f;
                     }
-                    Color c = Color.getHSBColor(hw.getHue(), saturation, brighteness);
+
+
+                    Color c = Color.getHSBColor(hue, saturation, brighteness);
 
                     g.setColor(c);
                     int x = (int) (zoom * (attributeIndex + xOffset));
@@ -120,15 +175,13 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
                     int w = (int) ((float) Math.ceil(zoom * (width)));
                     int h = (int) ((zoom * (yOffset + height * hw.getWeight())));
 
-                   /* Rectangle r = new Rectangle();
-                    r.setSize((int) w, (int) h);
-                    r.setLocation((int) x, (int) y);*/
-
                     g.fillRect(x, y, w, h);
 
                     for (int ii = x; ii < x+w; ii++ ) {
                         for (int jj = y; jj < y+h; jj++) {
-                            descriptions.put(ii, jj, hw.getDescription() + "\t" + attributeDescription.get(attribute) + "\t" + attribute);
+                            String filteredAtt = "";
+                            if (filteredAttributes.contains(attribute)) filteredAtt = " --- FILTERED ";
+                            descriptions.put(ii, jj, hw.getDescription() + "\t" + attributeDescription.get(attribute) + "\t" + attribute + filteredAtt);
                         }
                     }
 
@@ -140,6 +193,15 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
         }
 
         preferredSize.setSize(zoom*(attributeIndex+3*width), zoom*(clusterOffset+2*yOffset));
+        //preferredSize.setSize(4*(attributeIndex+3*width), 10*(clusterOffset+2*yOffset));
+    }
+
+    /**
+     *
+     * @param g
+     */
+    public void paint(Graphics g) {
+        g.drawImage(bufferedImage, 0, 0, null);
     }
 
     @Override
@@ -155,6 +217,7 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     public void mouseMoved(MouseEvent e) {
         String desc = descriptions.get(e.getX(), e.getY());
         if (desc != null) {
+            desc = desc.replace("\t", "   ");
             clustersFrame.updateAttributeInfo(desc);
         }
     }
@@ -162,7 +225,6 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     @Override
     public void mouseClicked(MouseEvent e)
     {
-        System.out.println("mouseClicked");
         String desc = descriptions.get(e.getX(), e.getY());
         if (desc != null) {
             clustersFrame.saveAttributeInfo(desc);
@@ -194,4 +256,7 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
     }
 
 
+    public void removeSame(boolean b) {
+        removeSame = b;
+    }
 }

@@ -2,7 +2,7 @@
 <form xmlns="http://www.intellij.com/uidesigner/form/" version="1" bind-to-class="sample.ClustersFrame">
   <grid id="cbd77" binding="contentPane" layout-manager="BorderLayout" hgap="0" vgap="0">
     <constraints>
-      <xy x="11" y="6" width="869" height="522"/>
+      <xy x="11" y="6" width="869" height="713"/>
     </constraints>
     <properties/>
     <border type="none"/>
@@ -53,6 +53,13 @@
               <text value="Sort by values count"/>
             </properties>
           </component>
+          <component id="a22d7" class="javax.swing.JLabel" binding="infoLabel">
+            <constraints/>
+            <properties>
+              <font size="12" style="1"/>
+              <text value="Label"/>
+            </properties>
+          </component>
         </children>
       </grid>
       <grid id="e3588" layout-manager="BorderLayout" hgap="0" vgap="0">
@@ -64,7 +71,8 @@
             <constraints border-constraint="Center"/>
             <properties>
               <continuousLayout value="false"/>
-              <dividerLocation value="600"/>
+              <dividerLocation value="435"/>
+              <orientation value="0"/>
             </properties>
             <border type="none"/>
             <children>
@@ -80,63 +88,42 @@
                 <border type="none"/>
                 <children/>
               </scrollpane>
-              <grid id="98b7" layout-manager="GridLayoutManager" row-count="4" column-count="3" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-                <margin top="0" left="0" bottom="0" right="0"/>
+              <grid id="599cc" layout-manager="BorderLayout" hgap="0" vgap="0">
                 <constraints>
                   <splitpane position="right"/>
                 </constraints>
                 <properties/>
                 <border type="none"/>
                 <children>
-                  <vspacer id="c217f">
-                    <constraints>
-                      <grid row="2" column="0" row-span="2" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                  </vspacer>
-                  <component id="744f6" class="javax.swing.JButton" binding="clearButton" default-binding="true">
-                    <constraints>
-                      <grid row="2" column="2" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <text value="Clear"/>
-                    </properties>
-                  </component>
-                  <hspacer id="c05aa">
-                    <constraints>
-                      <grid row="2" column="1" row-span="2" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                  </hspacer>
-                  <vspacer id="88c1f">
-                    <constraints>
-                      <grid row="3" column="2" row-span="1" col-span="1" vsize-policy="6" hsize-policy="1" anchor="0" fill="2" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                  </vspacer>
-                  <component id="bdfa5" class="javax.swing.JLabel">
-                    <constraints>
-                      <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <text value="Info"/>
-                    </properties>
-                  </component>
-                  <component id="a22d7" class="javax.swing.JLabel" binding="infoLabel">
-                    <constraints>
-                      <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="0" anchor="8" fill="0" indent="0" use-parent-layout="false"/>
-                    </constraints>
-                    <properties>
-                      <text value="Label"/>
-                    </properties>
-                  </component>
-                  <scrollpane id="411ae">
-                    <constraints>
-                      <grid row="1" column="0" row-span="1" col-span="3" vsize-policy="7" hsize-policy="7" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-                    </constraints>
+                  <grid id="98b7" layout-manager="FlowLayout" hgap="5" vgap="5" flow-align="2">
+                    <constraints border-constraint="South"/>
                     <properties/>
+                    <border type="none"/>
+                    <children>
+                      <hspacer id="c05aa">
+                        <constraints/>
+                      </hspacer>
+                      <component id="744f6" class="javax.swing.JButton" binding="clearButton" default-binding="true">
+                        <constraints/>
+                        <properties>
+                          <text value="Clear"/>
+                        </properties>
+                      </component>
+                    </children>
+                  </grid>
+                  <scrollpane id="411ae">
+                    <constraints border-constraint="Center"/>
+                    <properties>
+                      <minimumSize width="201" height="120"/>
+                    </properties>
                     <border type="none"/>
                     <children>
                       <component id="7b035" class="javax.swing.JTextArea" binding="textArea1" default-binding="true">
                         <constraints/>
-                        <properties/>
+                        <properties>
+                          <minimumSize width="400" height="122"/>
+                          <preferredSize width="4" height="150"/>
+                        </properties>
                       </component>
                     </children>
                   </scrollpane>
@@ -146,45 +133,12 @@
           </splitpane>
         </children>
       </grid>
-      <grid id="94766" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="false" same-size-vertically="false" hgap="-1" vgap="-1">
-        <margin top="4" left="4" bottom="4" right="4"/>
+      <toolbar id="8b3d7">
         <constraints border-constraint="South"/>
         <properties/>
         <border type="none"/>
-        <children>
-          <hspacer id="98af6">
-            <constraints>
-              <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="1" hsize-policy="6" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-            </constraints>
-          </hspacer>
-          <grid id="9538f" layout-manager="GridLayoutManager" row-count="1" column-count="2" same-size-horizontally="true" same-size-vertically="false" hgap="-1" vgap="-1">
-            <margin top="0" left="0" bottom="0" right="0"/>
-            <constraints>
-              <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="0" fill="3" indent="0" use-parent-layout="false"/>
-            </constraints>
-            <properties/>
-            <border type="none"/>
-            <children>
-              <component id="e7465" class="javax.swing.JButton" binding="buttonOK">
-                <constraints>
-                  <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="OK"/>
-                </properties>
-              </component>
-              <component id="5723f" class="javax.swing.JButton" binding="buttonCancel">
-                <constraints>
-                  <grid row="0" column="1" row-span="1" col-span="1" vsize-policy="0" hsize-policy="3" anchor="0" fill="1" indent="0" use-parent-layout="false"/>
-                </constraints>
-                <properties>
-                  <text value="Cancel"/>
-                </properties>
-              </component>
-            </children>
-          </grid>
-        </children>
-      </grid>
+        <children/>
+      </toolbar>
     </children>
   </grid>
 </form>

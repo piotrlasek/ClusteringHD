@@ -118,18 +118,14 @@ public class Main extends Application {
 
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
-        Class.forName("org.postgresql.Driver");
-        String url = "jdbc:postgresql://192.168.56.102/diabetic";
-        Properties props = new Properties();
-        props.setProperty("user","piotr");
-        props.setProperty("password", "piotr");
-        Connection conn = DriverManager.getConnection(url, props);
+        Database database = new Database();
+        //Connection connection = database.getConnection();
 
         // -----------------------------------------------------------------------
         // Determines which attributes are numerical or nominal.
         // For numerical determines max and min values.
         //
-        // ArrayList<NominalNumericalAttribute> nnAttributes = Utils.getNominalNumericalAttributes(conn);
+        // ArrayList<NominalNumericalAttribute> nnAttributes = Utils.getNominalNumericalAttributes(connection);
 
         // -----------------------------------------------------------------------
         // GENERATE QUERY START
@@ -161,9 +157,8 @@ public class Main extends Application {
         // Map data
 
         if (false) {
-
             try {
-                Mapper.mapTable(conn, tableName, attributes);
+                Mapper.mapTable(database, tableName, attributes);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -175,24 +170,31 @@ public class Main extends Application {
 
         String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
         SelectAttributesDialog sad;
-        sad = new SelectAttributesDialog(attributes, exclude, conn);
+        sad = new SelectAttributesDialog(database, attributes, exclude);
         sad.setVisible(true);
         attributes = sad.getResult();
         algorithm = sad.getAlgorithm();
 
-
         if (true) {
             // Generate query to get data and get it.
             // -----------------------------------------------------------------------
-            // dataset = Utils.readData(conn, attributes, sad.getNominalNumericalAttributes(), exclude);
+            dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
+
+
+
+            DistanceMatrix distanceMatrix = new DistanceMatrix(dataset.size(), dataset.size());
+
+
+
+
         }
 
         // -----------------------------------------------------------------------------------
         // VISUALIZE
 
-        ClusterVisualizer cv = new ClusterVisualizer(conn, sad.getNominalNumericalAttributes());
-        cv.prepareColors(conn);
-        cv.prepareWeights(conn);
+        ClusterVisualizer cv = new ClusterVisualizer(database, sad.getNominalNumericalAttributes());
+        cv.prepareColors(database);
+        cv.prepareWeights(database);
 
         cv.showClusters();
 
@@ -233,13 +235,13 @@ public class Main extends Application {
         long end = System.currentTimeMillis();
         System.out.println("Run-time: " + ((end - start) / 1000) + " s");
         System.out.println("---------------------------------------------------");
-        Utils.saveClusters(tableName, clusters, conn, algorithm);
+        Utils.saveClusters(tableName, clusters, database, algorithm);
 
         // CLUSTERING END
         // -----------------------------------------------------------------------------------
 
         // prepare visualization
-       // Main.visualize(conn);
+       // Main.visualize(connection);
         //if (true) return; /**/
 
         // show visualization
@@ -251,7 +253,7 @@ public class Main extends Application {
         // -----------------------------------------------------------------------------------
         // -----------------------------------------------------------------------------------
 
-//        ArrayList<Attribute> attributesList = Utils.getAttributes(conn);
+//        ArrayList<Attribute> attributesList = Utils.getAttributes(connection);
 //
 //        String query =
 //            "SELECT " +
@@ -268,7 +270,7 @@ public class Main extends Application {
 //        for(Attribute a : attributesList) {
 //            String q = query.replace("[column_name]", a.getName());
 //
-//            Statement s = conn.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+//            Statement s = connection.createStatement(ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
 //            s.execute(q);
 //
 //            ResultSet result = s.getResultSet();

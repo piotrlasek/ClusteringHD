@@ -3,9 +3,7 @@ package sample;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -20,11 +18,11 @@ public class Utils {
 
     /**
      *
-     * @param connection
+     * @param database
      * @return
      * @throws SQLException
      */
-    public static HashMap<String, String> getAttributeFormat(Connection connection, String attributesList)
+    public static HashMap<String, String> getAttributeFormat(Database database, String attributesList)
             throws SQLException {
         HashMap<String, String> result = new HashMap<String, String>();
         String query;
@@ -43,7 +41,7 @@ public class Utils {
                     "    attributes ";
         }
 
-        Statement statement = connection.createStatement();
+        Statement statement = database.getConnection().createStatement();
         statement.execute(query);
 
         ResultSet rs = statement.getResultSet();
@@ -300,7 +298,7 @@ public class Utils {
      * @return
      * @throws SQLException
      */
-    public static ArrayList<Attribute> getAttributes(Connection connection) throws SQLException {
+    /*public static ArrayList<Attribute> getAttributes(Connection connection) throws SQLException {
 
         ArrayList<Attribute> attributes = new ArrayList<Attribute>();
 
@@ -313,7 +311,7 @@ public class Utils {
         }
 
         return attributes;
-    }
+    }*/
 
     /**
      *
@@ -366,14 +364,14 @@ public class Utils {
      *
      * @param tableName
      * @param clusters
-     * @param conn
+     * @param database
      * @param algorithm
      * @throws SQLException
      */
-    public static void saveClusters(String tableName, ArrayList<ClusterVect> clusters, Connection conn, String algorithm) throws SQLException {
+    public static void saveClusters(String tableName, ArrayList<ClusterVect> clusters, Database database, String algorithm) throws SQLException {
 
         System.out.println("Saving clusters...");
-        Statement s = conn.createStatement();
+        Statement s = database.getConnection().createStatement();
 
         // clear previous results
         String q = "update " + tableName + "_map" + " set " + algorithm + " = NULL";
@@ -381,7 +379,7 @@ public class Utils {
 
         // prepare statement
 
-        Statement ps = conn.createStatement();
+        Statement ps = database.getConnection().createStatement();
 
         // update cluster labels
         for(ClusterVect cv : clusters) {
@@ -400,7 +398,6 @@ public class Utils {
         }
 
         System.out.println("Done.");
-
     }
 
 
@@ -423,6 +420,7 @@ public class Utils {
                 f = new Float(s2);
             } catch (Exception e2) {
                 //System.out.println("--------- CONVERTION DID NOT WORK FOR: " + s);
+                // TODO: why e ?
                 throw e;
             }
         }
@@ -456,18 +454,35 @@ public class Utils {
 
     /**
      *
-     * @param connection
+     * @param database
      * @param algorithm
      * @return
      */
-    public static ArrayList<Integer> getClusters(Connection connection, String algorithm) throws SQLException {
-        ArrayList<Integer> result = new ArrayList<Integer>();
-        Statement statement = connection.createStatement();
-        statement.execute("SELECT DISTINCT " + algorithm + " FROM data WHERE " + algorithm + " > 0 ORDER BY " + algorithm);
-        ResultSet resultSet = statement.getResultSet();
+    public static ArrayList<Integer> getClusters(Database database, String algorithm) throws SQLException {
 
-        while(resultSet.next()) {
-            result.add(resultSet.getInt(algorithm));
+
+        ArrayList<Integer> result = null;
+        try {
+            result = Utils.readClusters(algorithm);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (result == null || result.size() <= 0) {
+            result = new ArrayList<>();
+            Statement statement = database.getConnection().createStatement();
+            statement.execute("SELECT DISTINCT " + algorithm + " FROM data WHERE " + algorithm + " > 0 ORDER BY " + algorithm);
+            ResultSet resultSet = statement.getResultSet();
+
+            while (resultSet.next()) {
+                result.add(resultSet.getInt(algorithm));
+            }
+
+            try {
+                Utils.saveClusters(result, algorithm);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return result;
@@ -475,51 +490,66 @@ public class Utils {
 
     /**
      *
+     * @param algorithm
      * @return
+     * @throws Exception
      */
-    public static ArrayList<NominalNumericalObject> readData(Connection conn, String attributes,  ArrayList<NominalNumericalAttribute> nominalNumericalAttributes, String exclude) throws SQLException {
+    public static ArrayList<Integer> readClusters(String algorithm) throws Exception {
+        String fileName = algorithm + "_clusters.ser";
+        ArrayList<Integer> e = null;
+        FileInputStream fileIn = new FileInputStream(fileName);
+        ObjectInputStream in = new ObjectInputStream(fileIn);
+        e = (ArrayList<Integer>) in.readObject();
+        in.close();
+        fileIn.close();
+        return e;
+    }
 
-        ArrayList<NominalNumericalObject> dataset = new ArrayList();
+    /**
+     *
+     * @param clusters
+     * @param algorithm
+     * @throws Exception
+     */
+    public static void saveClusters(ArrayList<Integer> clusters, String algorithm) throws Exception {
+        String fileName = algorithm + "_clusters.ser";
+        FileOutputStream fileOut =
+                new FileOutputStream(fileName);
+        ObjectOutputStream out = new ObjectOutputStream(fileOut);
+        out.writeObject(clusters);
+        out.close();
+        fileOut.close();
+    }
 
-        System.out.println("Selected attributes: " + attributes);
-
-        Statement statementGetBitRecords = null;
+    /**
+     *
+     * @param fileName
+     */
+    public static void saveAttributes(ArrayList<NominalNumericalAttribute> attributes, String fileName) {
         try {
-            statementGetBitRecords = conn.createStatement();
-        } catch (SQLException e) {
-            e.printStackTrace();
+            FileOutputStream fileOut =
+                    new FileOutputStream(fileName);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(attributes);
+            out.close();
+            fileOut.close();
+        } catch(IOException i) {
+            i.printStackTrace();
         }
+    }
 
-        System.out.println("Reading data from DB... ");
-
-        //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
-        String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR ccc_121 = 'YES' LIMIT " + Main.limit;
-
-        statementGetBitRecords.execute(query);
-        System.out.println("Done.");
-
-        ResultSet resultSetBitRecords;
-        resultSetBitRecords = statementGetBitRecords.getResultSet();
-
-        int count = 0;
-
-        System.out.println("Constructing an array of bit vectors... ");
-
-        // ArrayList<Attribute> attributesList = sad.getAttributes();
-        // ArrayList<NominalNumericalAttribute> nominalNumericalAttributes = ;
-
-        while (resultSetBitRecords.next()) {
-            NominalNumericalObject nno = new NominalNumericalObject();
-            nno.addAttributes(nominalNumericalAttributes);
-            nno.setValues(resultSetBitRecords);
-
-            // MyVector mbs = new MyVector(resultSetBitRecords);
-            dataset.add(nno);
-            count++;
-        }
-
-        System.out.print("Done.\n");
-
-        return dataset;
+    /**
+     *
+     * @return
+     * @throws Exception
+     */
+    public static ArrayList<NominalNumericalAttribute> readAttributes(String fileName) throws Exception {
+        ArrayList<NominalNumericalAttribute> e = null;
+        FileInputStream fileIn = new FileInputStream(fileName);
+        ObjectInputStream in = new ObjectInputStream(fileIn);
+        e = (ArrayList<NominalNumericalAttribute>) in.readObject();
+        in.close();
+        fileIn.close();
+        return e;
     }
 }

@@ -19,7 +19,6 @@ package sample;
 
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.IntWritable;
@@ -335,13 +334,16 @@ public class DisplayClustering extends Frame {
         return clusters;
     }
 
-    protected static void loadClustersWritable(Path output) throws IOException {
+    protected static void loadClustersWritable(Path output) throws Exception {
         Configuration conf = new Configuration();
         FileSystem fs = FileSystem.get(output.toUri(), conf);
+        throw new Exception("Source code does not work");
+        /*
         for (FileStatus s : fs.listStatus(output, new ClustersFilter())) {
             List<Cluster> clusters = readClustersWritable(s.getPath());
             CLUSTERS.add(clusters);
         }
+        */
     }
 
     /**

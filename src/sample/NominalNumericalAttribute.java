@@ -1,5 +1,6 @@
 package sample;
 
+import java.io.Serializable;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -7,14 +8,18 @@ import java.sql.Statement;
 /**
  * Created by Piotr Lasek on 9/16/2015.
  */
-public class NominalNumericalAttribute {
+public class NominalNumericalAttribute implements Serializable {
 
     private String name;
     private String description;
-    boolean type; // true -- number, false -- text
+    private boolean type; // true -- number, false -- text
     private Float min;
     private Float max;
     private Float[] minMax;
+
+    private int id;
+    private boolean used;
+    private String format;
 
     /**
      *
@@ -23,15 +28,17 @@ public class NominalNumericalAttribute {
      */
     NominalNumericalAttribute(String name, boolean type) {
         this.setName(name);
-        this.type = type;
+        this.setType(type);
     }
 
-    NominalNumericalAttribute(String name, boolean type, String description, Float min, Float max) {
+    NominalNumericalAttribute(int id, String name, String description, String format, Float min, Float max, boolean numerical ) {
+        this.setId(id);
         this.setName(name);
-        this.type = type;
+        this.setType(type);
+        this.setFormat(format);
         this.min = min;
         this.max = max;
-        this.description = description;
+        this.setDescription(description);
     }
 
     /**
@@ -39,7 +46,7 @@ public class NominalNumericalAttribute {
      * @return
      */
     public boolean getType() {
-        return type;
+        return isType();
     }
 
     /**
@@ -114,4 +121,41 @@ public class NominalNumericalAttribute {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    public boolean isType() {
+        return type;
+    }
+
+    public void setType(boolean type) {
+        this.type = type;
+    }
+
+    public Float[] getMinMax() {
+        return minMax;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public boolean isUsed() {
+        return used;
+    }
+
+    public void setUsed(boolean used) {
+        this.used = used;
+    }
+
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
 }

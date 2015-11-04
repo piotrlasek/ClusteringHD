@@ -22,19 +22,20 @@ public class Mapper {
 
     public static String stopWordsAtt = "'DON''T KNOW', 'N/S', " +
             " 'N/A', 'REFUSAL', 'NO DRINKS LAST W', 'NO PHY. ACTIVITY'";
-        /**
+
+    /**
      * Creates a file containing sql code for creating a "mapped" table tableName
      *
-     * @param connection
+     * @param database
      * @param tableName
      * @return
      * @throws Exception
      */
-    public static StringBuilder mapTable(Connection connection, String tableName, String attributesList)
+    public static StringBuilder mapTable(Database database, String tableName, String attributesList)
             throws Exception {
         StringBuilder sb = new StringBuilder();
-        HashMap<String, String> attributesFormats = Utils.getAttributeFormat(connection, attributesList);
-        HashMap<String, Mapping> formatMappings = Mapper.map(connection);
+        HashMap<String, String> attributesFormats = Utils.getAttributeFormat(database, attributesList);
+        HashMap<String, Mapping> formatMappings = Mapper.map(database.getConnection());
         Set<String> attributes = attributesFormats.keySet();
         boolean first = true;
 

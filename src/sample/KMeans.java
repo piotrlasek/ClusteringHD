@@ -168,11 +168,13 @@ public class KMeans extends DisplayClustering {
     private static void runSequentialKMeansClusterer(Configuration conf, Path samples, Path output,
                                                      DistanceMeasure measure, int numClusters, int maxIterations,
                                                      double convergenceDelta)
-            throws IOException, InterruptedException, ClassNotFoundException {
+            throws Exception {
         Path clustersIn = new Path(output, "random-seeds");
         RandomSeedGenerator.buildRandom(conf, samples, clustersIn, numClusters, measure);
         KMeansDriver.run(samples, clustersIn, output, convergenceDelta, maxIterations, true, 0.0, true);
-        loadClustersWritable(output);
+
+        throw new Exception("Code changed");
+        // loadClustersWritable(output);
     }
 
     /**

@@ -1,6 +1,5 @@
 package sample;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -12,17 +11,17 @@ import java.util.ArrayList;
 public class ClusterVisualizer {
 
     private ArrayList<NominalNumericalAttribute> attributes;
-    private Connection connection;
+    private Database database;
     TripleHashMap<String, String, Float> attributeValueHue = null;
     String algorithm = "dbscan";
 
     /**
      *
-     * @param connection
+     * @param database
      */
-    public ClusterVisualizer(Connection connection, ArrayList<NominalNumericalAttribute> attributes)
+    public ClusterVisualizer(Database database, ArrayList<NominalNumericalAttribute> attributes)
             throws SQLException {
-        this.connection = connection;
+        this.database = database;
         this.attributes = attributes;
     }
 
@@ -30,26 +29,23 @@ public class ClusterVisualizer {
      *
      */
     public void showClusters() {
-
         //JFrame frame = new JFrame();
         //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
         try {
-
             ArrayList<TripleHashMap<String, String, HueWeight>> data = new ArrayList< TripleHashMap<String, String, HueWeight>>();
-
-            ArrayList<Integer> clusters = Utils.getClusters(connection, algorithm);
+            ArrayList<Integer> clusters = Utils.getClusters(database, algorithm);
 
             for (Integer cluster : clusters) {
                 TripleHashMap<String, String, HueWeight> attributeValueHueWeight = TripleHashMap.readHW(getFileName("avhw_", algorithm, cluster, attributes.size()));
                 data.add(attributeValueHueWeight);
             }
+
             System.out.println("Object deserialized.");
 
             MyCanvas myCanvas = new MyCanvas(data, attributes, attributeValueHue );
             ClustersFrame cf = new ClustersFrame(myCanvas);
             myCanvas.setClusterFrame(cf);
-            cf.setSize(800, 600);
+            cf.setSize(800, 1000);
             cf.pack();
             cf.setVisible(true);
           //  frame.setSize(600, 800);
@@ -74,11 +70,10 @@ public class ClusterVisualizer {
 
     /**
      *
-     * @param connection
+     * @param database
      */
-    public void prepareWeights(Connection connection) throws SQLException {
-
-        ArrayList<Integer> clusterIds = Utils.getClusters(connection, algorithm);
+    public void prepareWeights(Database database) throws SQLException {
+        ArrayList<Integer> clusterIds = Utils.getClusters(database, algorithm);
 
         for(Integer clusterId : clusterIds) {
             TripleHashMap<String, String, HueWeight> attributeValueHueWeight = null;
@@ -99,7 +94,7 @@ public class ClusterVisualizer {
                 if (attributeValueHueWeight != null)
                     System.out.println("Deserialized hues and weights object sizes did not match.");
 
-                Integer recordsCountInCluster = Utils.getRecordsCount(connection,
+                Integer recordsCountInCluster = Utils.getRecordsCount(database.getConnection(),
                         "SELECT COUNT (id) FROM data WHERE " + algorithm + " = " + clusterId);
 
                 System.out.print("Preparing weights for cluster " + clusterId + ": ");
@@ -113,7 +108,7 @@ public class ClusterVisualizer {
                             "ORDER BY cnt DESC";
 
                     System.out.print(attribute + " ");
-                    Statement statement = connection.createStatement();
+                    Statement statement = database.getConnection().createStatement();
                     statement.execute(query);
                     ResultSet rs = statement.getResultSet();
 
@@ -131,7 +126,6 @@ public class ClusterVisualizer {
                 }
                 attributeValueHueWeight.save(fileName);
             }
-            System.out.println();
         }
     }
 
@@ -139,10 +133,9 @@ public class ClusterVisualizer {
 
     /**
      *
-     * @param connection
+     * @param database
      */
-    public void prepareColors(Connection connection) throws SQLException {
-
+    public void prepareColors(Database database) throws SQLException {
         String fileName = getFileName("colors", algorithm, 0, attributes.size());
 
         if (attributeValueHue == null) {
@@ -165,8 +158,7 @@ public class ClusterVisualizer {
             System.out.print("Preparing colors for: ");
 
             for (NominalNumericalAttribute a : attributes) {
-
-            // while(attCount.hasNext()) {
+                // while(attCount.hasNext()) {
                 //String attribute = attCount.next().getKey();
                 String attribute = a.getName();
 
@@ -177,39 +169,38 @@ public class ClusterVisualizer {
                         "ORDER BY cnt DESC";
 
                 System.out.print(attribute + " ");
-                Statement statement = connection.createStatement();
+                Statement statement = database.getConnection().createStatement();
                 statement.execute(query);
                 ResultSet rs = statement.getResultSet();
 
-                Integer recordsCount = Utils.getRecordsCount(connection,
+                Integer recordsCount = Utils.getRecordsCount(database.getConnection(),
                         "SELECT COUNT (DISTINCT " + attribute + ") FROM data");
 
                 Float hueDelta = 1f / recordsCount;
                 Float hue = 0f;
 
-            /*
-            if (a.getType() == true) { // attribute is numerical
-                while(rs.next()) {
-                    String value = rs.getString(attribute);
-                    Float valueFloat = Utils.convert(value);
+                /*
+                if (a.getType() == true) { // attribute is numerical
+                    while(rs.next()) {
+                        String value = rs.getString(attribute);
+                        Float valueFloat = Utils.convert(value);
 
-                    if (valueFloat < 0) {
-                        attributeValueHue.put(attribute, valueFloat, hue);
-                    } else {
-                        attributeValueHue.put(attribute, value, hue);
+                        if (valueFloat < 0) {
+                            attributeValueHue.put(attribute, valueFloat, hue);
+                        } else {
+                            attributeValueHue.put(attribute, value, hue);
+                        }
+
+                        hue += hueDelta;
                     }
-
-                    hue += hueDelta;
-                }
-            } else { // attribute is nominal
-            */
+                } else { // attribute is nominal
+                */
 
                 while (rs.next()) {
                     String value = rs.getString(attribute);
                     attributeValueHue.put(attribute, value, hue);
                     hue += hueDelta;
                 }
-
             /*}*/
             }
 

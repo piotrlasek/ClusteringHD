@@ -1,5 +1,6 @@
 package sample;
 
+import java.io.Serializable;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -8,7 +9,7 @@ import java.util.ArrayList;
 /**
  * Created by Piotr Lasek on 9/16/2015.
  */
-public class NominalNumericalObject {
+public class NominalNumericalObject implements Serializable {
 
     int id;
     ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to attributes list

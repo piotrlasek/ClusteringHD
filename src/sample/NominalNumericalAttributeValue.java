@@ -10,6 +10,11 @@ public class NominalNumericalAttributeValue {
 
     boolean numerical; // 1 numerical, 0 nominal
 
+    /**
+     *
+     * @param value
+     * @param numerical
+     */
     public NominalNumericalAttributeValue(String value, boolean numerical) {
         this.nominalValue = value;
         this.numerical = numerical;
