@@ -11,7 +11,7 @@ import java.io.FileNotFoundException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 
-public class SelectAttributesDialog extends JDialog {
+public class SelectAttributesDialog extends JFrame {
     private JPanel contentPane;
     private JButton buttonOK;
     private JButton buttonCancel;
@@ -134,22 +134,10 @@ public class SelectAttributesDialog extends JDialog {
 
         loadAttributes(database, exclude, attributesList);
 
-        setSize(500, 750);
+        setSize(600, 850);
         setContentPane(contentPane);
-        setModal(true);
+        //setModal(true);
         getRootPane().setDefaultButton(buttonOK);
-
-        buttonOK.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onOK();
-            }
-        });
-
-        buttonCancel.addActionListener(new ActionListener() {
-            public void actionPerformed(ActionEvent e) {
-                onCancel();
-            }
-        });
 
 // call onCancel() when cross is clicked
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
@@ -193,6 +181,12 @@ public class SelectAttributesDialog extends JDialog {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
+
+                String[] params = parameters.getText().split(";");
+
+                int minPts = new Integer(params[0]);
+                float eps = new Float(params[1]);
+
                 log.info("mouseClicked START");
 
                 long start = System.currentTimeMillis();
@@ -207,7 +201,28 @@ public class SelectAttributesDialog extends JDialog {
 
                 DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
 
+
+                for(int i = 0; i < 10; i++) {
+                    NominalNumericalObject nno1 = dataset.get(i);
+                    for(int j = 0; j < 10; j++) {
+                        NominalNumericalObject nno2 = dataset.get(j);
+
+                        float dist1 = nno1.distance(nno2);
+                        float dist2 = distanceMatrix.getDistance(i, j);
+                        float dist3 = distanceMatrix.getDistance(j, i);
+
+                        if (dist1 != dist2 && dist2 != dist3) {
+                            log.error("Error");
+                            System.exit(0);
+                        }
+                    }
+                }
+
+
                 DbScanVec dbscan = new DbScanVec(dataset, distanceMatrix);
+                dbscan.setMinPts(minPts);
+                dbscan.setEps(eps);
+
                 log.info("  MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
 
                 start = System.currentTimeMillis();
@@ -268,6 +283,21 @@ public class SelectAttributesDialog extends JDialog {
      * @return
      */
     public String getResult() {
+        result = "";
+        int cnt = 0;
+        StringBuilder sb = new StringBuilder();
+
+        for(NominalNumericalAttribute a : attributes) {
+            //System.out.println(a.getName() + ": " + a.isUsed());
+            if (a.isUsed()) {
+                if (cnt++ > 0) sb.append(",");
+                sb.append("'");
+                sb.append(a.getName());
+                sb.append("'");
+            }
+        }
+
+        result = sb.toString();
         return result;
     }
 
@@ -296,21 +326,7 @@ public class SelectAttributesDialog extends JDialog {
     private void onOK() {
 // add your code here
         //System.out.println("OK");
-        result = "";
-        int cnt = 0;
-        StringBuilder sb = new StringBuilder();
 
-        for(NominalNumericalAttribute a : attributes) {
-            //System.out.println(a.getName() + ": " + a.isUsed());
-            if (a.isUsed()) {
-                if (cnt++ > 0) sb.append(",");
-                sb.append("'");
-                sb.append(a.getName());
-                sb.append("'");
-            }
-        }
-
-        result = sb.toString();
 
         dispose();
     }

@@ -14,8 +14,8 @@ public class DbScanVec {
     private ArrayList<NominalNumericalObject> dataset;
     private ArrayList<ClusterVect> clusters;
     private ArrayList<NominalNumericalObject> noise;
-    public static double Eps;
-    public static int MinPts;
+    private double Eps;
+    private int MinPts;
     private DistanceMatrix distanceMatrix;
 
     final static Logger log = Logger.getLogger(DbScanVec.class);
@@ -66,7 +66,6 @@ public class DbScanVec {
      * @return
      */
     public ArrayList<NominalNumericalObject> expandCluster(ArrayList<NominalNumericalObject> set, NominalNumericalObject point, int clusterId) {
-        log.info("expandCluster START");
         ArrayList<NominalNumericalObject> clusterPoints = new ArrayList<NominalNumericalObject>();
         //ArrayList<NominalNumericalObject> seeds = point.getNeighbours(getDataset(), getEps());
         ArrayList<NominalNumericalObject> seeds = getNeighbours(point, getEps());
@@ -104,7 +103,6 @@ public class DbScanVec {
                 }
             } // seeds.size() > 0
         }
-        log.info("expandCluster STOP");
         return clusterPoints;
     }
 
@@ -122,8 +120,9 @@ public class DbScanVec {
         MyInteger size = new MyInteger();
         Integer[ ] allNeighbours = distanceMatrix.getNeighbours(id, Eps, size);
 
-        for(Integer nId : allNeighbours) {
-            neighbours.add(dataset.get(nId));
+        for(int i = 0; i < size.getValue(); i++) { //Integer nId : allNeighbours) {
+            NominalNumericalObject nno = dataset.get(i);
+            neighbours.add(nno);
         }
 
         return neighbours;

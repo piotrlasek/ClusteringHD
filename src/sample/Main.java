@@ -17,14 +17,12 @@ import org.apache.log4j.Logger;
  */
 public class Main extends Application {
 
-    public static int limit = 17000;
+    public static int limit = 1000;
 
     final static Logger log = Logger.getLogger(Main.class);
 
     static {
-        DbScanVec.Eps = 0.08;
-        DbScanVec.MinPts = 150;
-    }
+   }
 
     public static String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
 
@@ -33,7 +31,7 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) throws Exception {
         Parent root = FXMLLoader.load(getClass().getResource("sample.fxml"));
-        primaryStage.setTitle("Diabetic - clusters visualization " + DbScanVec.Eps + ", " + DbScanVec.MinPts );
+        primaryStage.setTitle("Diabetic - clusters visualization ");
         primaryStage.setScene(new Scene(root, 300, 275));
         primaryStage.show();
     }
@@ -179,11 +177,11 @@ public class Main extends Application {
         SelectAttributesDialog sad;
         sad = new SelectAttributesDialog(database, attributes, exclude);
         sad.setVisible(true);
-        attributes = sad.getResult();
-        algorithm = sad.getAlgorithm();
+        // attributes = sad.getResult();
+        // algorithm = sad.getAlgorithm();
 
-        dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
-        DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
+        // dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
+        // DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
 
         // -----------------------------------------------------------------------------------
         // VISUALIZE

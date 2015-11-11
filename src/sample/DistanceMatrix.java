@@ -81,7 +81,8 @@ public class DistanceMatrix implements Serializable {
             DistanceComparator dc = new DistanceComparator(ids);
             dc.setDists(matrix[i]);
             Arrays.sort(ids, dc);
-            neighbours[i] = Arrays.copyOf(ids, 200);
+            //neighbours[i] = Arrays.copyOf(ids, 200);
+            neighbours[i] = ids;
         }
         log.info("computeNeighbours END");
     }

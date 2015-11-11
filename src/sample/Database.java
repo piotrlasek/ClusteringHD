@@ -135,10 +135,11 @@ public class Database {
 
             log.info("  Constructing an array of bit vectors... ");
 
+            int id = 0;
             while (resultSetBitRecords.next()) {
                 NominalNumericalObject nno = new NominalNumericalObject();
                 nno.addAttributes(nominalNumericalAttributes);
-                nno.setValues(resultSetBitRecords);
+                nno.setValues(id++, resultSetBitRecords);
 
                 dataset.add(nno);
                 count++;
@@ -157,9 +158,10 @@ public class Database {
      * @return
      */
     public DistanceMatrix buildDistanceMatrix(ArrayList<NominalNumericalObject> objects) {
-        log.info("Start.");
-
-        String fileName = "distance-matrix-"+objects.size() + ".ser";
+        log.info("buildDistanceMatrix Start.");
+        int nnAttributesCount = objects.get(0).getNnAttributes().size();
+        int objectsCount = objects.size();
+        String fileName = "distance-matrix-" + nnAttributesCount + "-" + objectsCount + ".ser";
         DistanceMatrix dm = null;
 
         try {
@@ -186,7 +188,7 @@ public class Database {
             dm.save(fileName);
         }
 
-        log.info("End.");
+        log.info("buildDistanceMatrix End.");
         return dm;
     }
 }

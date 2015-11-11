@@ -11,12 +11,12 @@ import java.util.ArrayList;
  */
 public class NominalNumericalObject implements Serializable {
 
-    int id;
-    ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to attributes list
-    ArrayList<NominalNumericalAttributeValue> nnValues;
+    private int id;
+    private int dbId;
     private ResultSet values;
-    ArrayList<NominalNumericalObject> neighbours;
-
+    private ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to attributes list
+    private ArrayList<NominalNumericalAttributeValue> nnValues;
+    private ArrayList<NominalNumericalObject> neighbours;
     public int clusterId = -1;
 
     /**
@@ -29,27 +29,19 @@ public class NominalNumericalObject implements Serializable {
 
     /**
      *
-     * @param rs
-     * @throws SQLException
+     * @return
      */
-    public NominalNumericalObject(ResultSet rs) throws SQLException {
-        id = rs.getInt("id");
-
-        ResultSetMetaData rsmd = rs.getMetaData();
-        int columnsNumber = rsmd.getColumnCount();
-
-        for (NominalNumericalAttribute nna : nnAttributes) {
-            String value = rs.getString(nna.getName());
-            this.addValue(nna.getName(), value);
-        }
+    public ArrayList<NominalNumericalAttributeValue> getValues() {
+        return nnValues;
     }
+
 
     /**
      *
      * @return
      */
-    public ArrayList<NominalNumericalAttributeValue> getValues() {
-        return nnValues;
+    public ArrayList<NominalNumericalAttribute> getNnAttributes() {
+        return nnAttributes;
     }
 
     /**
@@ -85,7 +77,6 @@ public class NominalNumericalObject implements Serializable {
      * @param nnAttributes
      */
     public void addAttributes(ArrayList<NominalNumericalAttribute> nnAttributes) {
-        //NominalNumericalAttribute nna = new NominalNumericalAttribute(attributeName, type);
         this.nnAttributes.addAll(nnAttributes);
     }
 
@@ -161,9 +152,7 @@ public class NominalNumericalObject implements Serializable {
 
         System.out.println(d0);
 
-
         System.out.println("Done.");
-
     }
 
     /**
@@ -171,8 +160,9 @@ public class NominalNumericalObject implements Serializable {
      * @param rs
      * @throws SQLException
      */
-    public void setValues(ResultSet rs) throws SQLException {
-        id = rs.getInt("id");
+    public void setValues(int id, ResultSet rs) throws SQLException {
+        setId(id);
+        setDbId(rs.getInt("id"));
 
         ResultSetMetaData rsmd = rs.getMetaData();
         int columnsNumber = rsmd.getColumnCount();
@@ -227,5 +217,13 @@ public class NominalNumericalObject implements Serializable {
 
     public int getId() {
         return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public void setDbId(int dbId) {
+        this.dbId = dbId;
     }
 }
