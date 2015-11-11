@@ -34,7 +34,7 @@ public class NominalNumericalAttribute implements Serializable {
     NominalNumericalAttribute(int id, String name, String description, String format, Float min, Float max, boolean numerical ) {
         this.setId(id);
         this.setName(name);
-        this.setType(type);
+        this.setType(numerical);
         this.setFormat(format);
         this.min = min;
         this.max = max;

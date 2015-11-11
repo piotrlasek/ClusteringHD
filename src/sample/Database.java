@@ -1,5 +1,7 @@
 package sample;
 
+import org.apache.log4j.Logger;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -8,6 +10,8 @@ import java.util.Properties;
  * Created by Piotr on 28.10.2015.
  */
 public class Database {
+
+    final static Logger log = Logger.getLogger(Database.class);
 
     private Connection connection;
     private String url = "jdbc:postgresql://192.168.56.102/diabetic";
@@ -101,10 +105,11 @@ public class Database {
         ArrayList<NominalNumericalAttribute> nominalNumericalAttributes,
         String exclude) throws SQLException {
 
+        log.info("readData START");
         ArrayList<NominalNumericalObject> dataset = new ArrayList();
 
         if (getConnection()!= null) {
-            System.out.println("Selected attributes: " + attributes);
+            log.info("  Selected attributes: " + attributes);
 
             Statement statementGetBitRecords = null;
             try {
@@ -113,21 +118,22 @@ public class Database {
                 e.printStackTrace();
             }
 
-            System.out.println("Reading data from DB... ");
+            log.info("  Reading data from DB... ");
 
             //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
             String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR " +
                 " ccc_121 = 'YES' LIMIT " + Main.limit;
 
             statementGetBitRecords.execute(query);
-            System.out.println("Done.");
+
+            log.info("  Done.");
 
             ResultSet resultSetBitRecords;
             resultSetBitRecords = statementGetBitRecords.getResultSet();
 
             int count = 0;
 
-            System.out.println("Constructing an array of bit vectors... ");
+            log.info("  Constructing an array of bit vectors... ");
 
             while (resultSetBitRecords.next()) {
                 NominalNumericalObject nno = new NominalNumericalObject();
@@ -138,9 +144,49 @@ public class Database {
                 count++;
             }
 
-            System.out.print("Done.\n");
+            log.info("  Done.");
         }
 
+        log.info("readData END");
         return dataset;
+    }
+
+    /**
+     *
+     * @param objects
+     * @return
+     */
+    public DistanceMatrix buildDistanceMatrix(ArrayList<NominalNumericalObject> objects) {
+        log.info("Start.");
+
+        String fileName = "distance-matrix-"+objects.size() + ".ser";
+        DistanceMatrix dm = null;
+
+        try {
+            dm = DistanceMatrix.read(fileName);
+        } catch (Exception e) {
+            log.error(e);
+        }
+
+        if (dm == null) {
+            log.info("New distance matrix.");
+            dm = new DistanceMatrix(objects.size(), objects.size());
+
+            for (int i = 0; i < objects.size(); i++) {
+                NominalNumericalObject oi = objects.get(i);
+                for (int j = i; j < objects.size(); j++) {
+                    NominalNumericalObject oj = objects.get(j);
+                    float dist = oi.distance(oj);
+                    dm.set(i, j, dist);
+                    dm.set(j, i, dist);
+                }
+            }
+
+            dm.computeNeighbours();
+            dm.save(fileName);
+        }
+
+        log.info("End.");
+        return dm;
     }
 }

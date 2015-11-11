@@ -1,16 +1,22 @@
 package sample;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.log4j.Logger;
+import org.apache.lucene.util.ArrayUtil;
+
 import java.io.*;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.stream.IntStream;
 
 /**
  * Created by Piotr Lasek on 10/13/2015.
  */
 public class DistanceMatrix implements Serializable {
 
+    final static Logger log = Logger.getLogger(DistanceMatrix.class);
     float[][] matrix;
-    int[][] neighbours;
+    Integer[][] neighbours;
     int width;
     int height;
 
@@ -25,24 +31,22 @@ public class DistanceMatrix implements Serializable {
         /**
          *
          * @param ids
-         * @param dists
          */
-        public DistanceComparator(Integer[] ids, float[] dists) {
+        public DistanceComparator(Integer[] ids) {
            this.ids = ids;
-           this.dists = dists;
         }
 
         @Override
         public int compare(Integer o1, Integer o2) {
-            float v1 = dists[o1];
-            float v2 = dists[o2];
+            Float v1 = dists[o1];
+            Float v2 = dists[o2];
 
-            if (v1 > v2)
-                return 1;
-            else
-                return -1;
+            return v1.compareTo(v2);
         }
 
+        public void setDists(float[] dists) {
+            this.dists = dists;
+        }
     }
 
     /**
@@ -58,33 +62,63 @@ public class DistanceMatrix implements Serializable {
 
     /**
      *
+     * @return
      */
-    public void computeNeighbours() {
-        // array of ids
-        Integer[] ids = new Integer[width];
-        for (int j = 0; j < width; j++) {
-            ids[j] = j;
-        }
-
-        for(int i = 0; i < height; i++) {
-            System.out.println("Row: " + i);
-            for(int j = 0; j < width; j++) {
-                float[] dists = Arrays.copyOf(matrix[i], width);
-                DistanceComparator dc = new DistanceComparator(ids, dists);
-                Arrays.sort(ids, dc);
-            }
-        }
+    public long getSize() {
+        return width * height;
     }
 
     /**
      *
-     * @param p
+     */
+    public void computeNeighbours() {
+        log.info("computeNeighbours BEGIN");
+        neighbours = new Integer[width][];
+        // array of ids
+        for(int i = 0; i < height; i++) {
+            int[] idsInt = IntStream.range(0, width).toArray();
+            Integer[] ids = ArrayUtils.toObject(idsInt);
+            DistanceComparator dc = new DistanceComparator(ids);
+            dc.setDists(matrix[i]);
+            Arrays.sort(ids, dc);
+            neighbours[i] = Arrays.copyOf(ids, 200);
+        }
+        log.info("computeNeighbours END");
+    }
+
+    /**
+     *
+     * @param i
      * @param k
      * @return
      */
-    public int[] getNeighbours(int p, int k) {
-        int[] ne = this.neighbours[p];
-        return Arrays.copyOfRange(ne, 0, k);
+    public Integer[] getNeighbours(int i, int k) {
+        Integer[] ne = this.neighbours[i];
+        return ne;
+    }
+
+    /**
+     *
+     * @param i
+     * @param eps
+     * @param size
+     * @return
+     */
+    public Integer[] getNeighbours(int i, double eps, MyInteger size) {
+        Integer[] ne = this.neighbours[i];
+        float dist;
+
+        int s = 0;
+        for(Integer nId : neighbours[i]) {
+            dist = getDistance(i, nId);
+            if (dist > eps) {
+                break;
+            }
+            s++;
+        }
+        size.setValue(s);
+
+        return ne;
     }
 
     /**
@@ -95,7 +129,6 @@ public class DistanceMatrix implements Serializable {
      */
     public void set(int x, int y, float dist) {
         matrix[x][y] = dist;
-        matrix[y][x] = dist;
     }
 
     /**
@@ -110,9 +143,10 @@ public class DistanceMatrix implements Serializable {
 
     /**
      *
-     *
+     * @param fileName
      */
     public void save(String fileName) {
+        log.info("Start.");
         try {
             FileOutputStream fileOut =
                     new FileOutputStream(fileName);
@@ -123,6 +157,7 @@ public class DistanceMatrix implements Serializable {
         } catch(IOException i) {
             i.printStackTrace();
         }
+        log.info("End.");
     }
 
     /**
@@ -165,7 +200,7 @@ public class DistanceMatrix implements Serializable {
         System.out.println("Indexing: " + (e - s) + " ms");
 
         s = System.currentTimeMillis();
-        int[] neighbours = dm.getNeighbours(1, 100);
+        Integer[] neighbours = dm.getNeighbours(1, 100);
         e = System.currentTimeMillis();
 
         System.out.println("Searching: " + (e - s) + " ms");

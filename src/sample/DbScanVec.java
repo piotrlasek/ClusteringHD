@@ -1,5 +1,7 @@
 package sample;
 
+import org.apache.log4j.Logger;
+
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -14,28 +16,35 @@ public class DbScanVec {
     private ArrayList<NominalNumericalObject> noise;
     public static double Eps;
     public static int MinPts;
+    private DistanceMatrix distanceMatrix;
+
+    final static Logger log = Logger.getLogger(DbScanVec.class);
 
     /**
-     *
      * @param dataset
+     * @param distanceMatrix
      */
-    public DbScanVec(ArrayList<NominalNumericalObject> dataset) {
+    public DbScanVec(ArrayList<NominalNumericalObject> dataset, DistanceMatrix distanceMatrix) {
+        log.info("DbScanVec START");
+        setDistanceMatrix(distanceMatrix);
         setDataset(dataset);
         setClusters(new ArrayList<ClusterVect>());
         setNoise(new ArrayList<NominalNumericalObject>());
+        log.info("DbScanVec STOP");
     }
 
     /**
      *
      */
     public void run() throws FileNotFoundException {
+        log.info("run START");
         int clusterId = 1;
         PrintWriter pw = new PrintWriter(Main.filePrefix + "-clusters.txt");
         for(NominalNumericalObject p : getDataset()) {
             if (p.clusterId == -1) { // UNCLASSIFIED
-               ArrayList<NominalNumericalObject> clusterPoints = ExpandCluster(getDataset(), p, clusterId);
+               ArrayList<NominalNumericalObject> clusterPoints = expandCluster(getDataset(), p, clusterId);
                if (clusterPoints.size() > 0) {
-                   System.out.println(" > cluster " + clusterId + " created.");
+                   log.info("   cluster " + clusterId + " created.");
                    ClusterVect c = new ClusterVect(clusterId);
                    c.addAll(clusterPoints);
                    getClusters().add(c);
@@ -46,6 +55,7 @@ public class DbScanVec {
             }
         }
         pw.close();
+        log.info("run END");
     }
 
    /**
@@ -55,24 +65,27 @@ public class DbScanVec {
      * @param clusterId
      * @return
      */
-    public ArrayList<NominalNumericalObject> ExpandCluster(ArrayList<NominalNumericalObject> set, NominalNumericalObject point, int clusterId) {
+    public ArrayList<NominalNumericalObject> expandCluster(ArrayList<NominalNumericalObject> set, NominalNumericalObject point, int clusterId) {
+        log.info("expandCluster START");
         ArrayList<NominalNumericalObject> clusterPoints = new ArrayList<NominalNumericalObject>();
-
-        ArrayList<NominalNumericalObject> seeds = point.getNeighbours(getDataset(), getEps());
+        //ArrayList<NominalNumericalObject> seeds = point.getNeighbours(getDataset(), getEps());
+        ArrayList<NominalNumericalObject> seeds = getNeighbours(point, getEps());
 
         if (seeds.size() < getMinPts()) {
             point.clusterId = 0; // NOISE
             getNoise().add(point);
         } else {
             point.clusterId = clusterId;
-
             clusterPoints.add(point);
-            clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
+
+            //clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
+            clusterPoints.addAll(getNeighbours(point, getEps()));
 
             //while(seeds.size() > 0) {
             while(true) {
                 NominalNumericalObject currentP = seeds.remove(0);
-                ArrayList<NominalNumericalObject> result = currentP.getNeighbours(set, getEps());
+                //ArrayList<NominalNumericalObject> result = currentP.getNeighbours(set, getEps());
+                ArrayList<NominalNumericalObject> result = getNeighbours(currentP, getEps());
                 if (result.size() >= getMinPts()) {
                     //for (NominalNumericalObject resultP : result) {  // masakra!
                     for(int i = 0; i < result.size(); i++) {
@@ -80,8 +93,9 @@ public class DbScanVec {
                         if (resultP.clusterId == -1 || resultP.clusterId == 0) {
                             if (resultP.clusterId == -1) seeds.add(resultP);
                             resultP.clusterId = clusterId;
-                            if (!clusterPoints.contains(resultP))
+                            if (!clusterPoints.contains(resultP)) {
                                 clusterPoints.add(resultP);
+                            }
                         }
                     }
                 }
@@ -90,8 +104,29 @@ public class DbScanVec {
                 }
             } // seeds.size() > 0
         }
-
+        log.info("expandCluster STOP");
         return clusterPoints;
+    }
+
+    /**
+     *
+     * @param o
+     * @param Eps
+     * @return
+     */
+    ArrayList<NominalNumericalObject> getNeighbours(NominalNumericalObject o, double Eps) {
+        ArrayList<NominalNumericalObject> neighbours = new ArrayList<>();
+
+        int id = o.getId();
+
+        MyInteger size = new MyInteger();
+        Integer[ ] allNeighbours = distanceMatrix.getNeighbours(id, Eps, size);
+
+        for(Integer nId : allNeighbours) {
+            neighbours.add(dataset.get(nId));
+        }
+
+        return neighbours;
     }
 
     public ArrayList<NominalNumericalObject> getDataset() {
@@ -132,5 +167,13 @@ public class DbScanVec {
 
     public void setMinPts(int minPts) {
         MinPts = minPts;
+    }
+
+    /**
+     *
+     * @param distanceMatrix
+     */
+    public void setDistanceMatrix(DistanceMatrix distanceMatrix) {
+        this.distanceMatrix = distanceMatrix;
     }
 }

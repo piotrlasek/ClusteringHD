@@ -69,7 +69,6 @@ public class Mapper {
         System.out.println(sb.toString());
 
         FileUtils.writeStringToFile(new File("query-gen-table-" + tableName + "_map" + ".sql"), sb.toString());
-
         return sb;
     }
 

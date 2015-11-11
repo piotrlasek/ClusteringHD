@@ -10,6 +10,7 @@ import javax.swing.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
+import org.apache.log4j.Logger;
 
 /**
  * Created by Piotr Lasek on 15-04-17.
@@ -18,10 +19,14 @@ public class Main extends Application {
 
     public static int limit = 17000;
 
+    final static Logger log = Logger.getLogger(Main.class);
+
     static {
         DbScanVec.Eps = 0.08;
         DbScanVec.MinPts = 150;
     }
+
+    public static String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
 
     public static String filePrefix = "C:\\Users\\Piotr\\Dropbox\\PROJECTS\\DIABETIC\\diabetic-D-10k-03-25-all";
 
@@ -116,6 +121,8 @@ public class Main extends Application {
      */
     public static void main(String[] args) throws Exception {
 
+        log.info("START");
+
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
         Database database = new Database();
@@ -152,10 +159,12 @@ public class Main extends Application {
         */
         attributes = "*";
 
+        log.info("Attributes selected: " + attributes);
+        log.info("Attributes excluded: " + exclude);
+
         // --------------------------------------------------------------------------
         // NOT USED
         // Map data
-
         if (false) {
             try {
                 Mapper.mapTable(database, tableName, attributes);
@@ -167,75 +176,51 @@ public class Main extends Application {
         ArrayList<NominalNumericalObject> dataset = new ArrayList<NominalNumericalObject>();
 
         // Load data
-
-        String exclude = "'VERDATE', 'ADM_RNO', 'WTS_M'";
         SelectAttributesDialog sad;
         sad = new SelectAttributesDialog(database, attributes, exclude);
         sad.setVisible(true);
         attributes = sad.getResult();
         algorithm = sad.getAlgorithm();
 
-        if (true) {
-            // Generate query to get data and get it.
-            // -----------------------------------------------------------------------
-            dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
-
-
-
-            DistanceMatrix distanceMatrix = new DistanceMatrix(dataset.size(), dataset.size());
-
-
-
-
-        }
+        dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
+        DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
 
         // -----------------------------------------------------------------------------------
         // VISUALIZE
 
-        ClusterVisualizer cv = new ClusterVisualizer(database, sad.getNominalNumericalAttributes());
-        cv.prepareColors(database);
-        cv.prepareWeights(database);
-
-        cv.showClusters();
 
         // -----------------------------------------------------------------------------------
         // CLUSTERING START
 
-        if (true) {
-            System.out.println("Main, 202: QUIT");
-            //System.exit(0);
-            return;
-        }
-
-        System.out.println("abc");
-
-        ArrayList<ClusterVect> clusters = null;
+        /*ArrayList<ClusterVect> clusters = null;
 
         long start = System.currentTimeMillis();
 
-        System.out.println("Starting DBSCAN...");
-
         if ("DBSCAN".equals(algorithm)) {
-            DbScanVec dbscan = new DbScanVec(dataset);
-            System.out.println("MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
+            DbScanVec dbscan = new DbScanVec(dataset, distanceMatrix);
+            log.info("  MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
             dbscan.run();
             clusters = dbscan.getClusters();
         } else if ("KMEANS".equals(algorithm)) {
-            /*int k = 7;
+            int k = 7;
             KMeans kmeans = new KMeans(dataset, k);
             System.out.println("k: " + k);
             kmeans.run();
-            clusters = kmeans.getClusters();*/
+            clusters = kmeans.getClusters();
         } else {
             throw new Exception("Unknown algorithm");
         }
 
-        System.out.println("Done.");
-
         long end = System.currentTimeMillis();
-        System.out.println("Run-time: " + ((end - start) / 1000) + " s");
-        System.out.println("---------------------------------------------------");
-        Utils.saveClusters(tableName, clusters, database, algorithm);
+        log.info("  Run-time: " + ((end - start) / 1000) + " s");
+
+        if (true) {
+            //System.exit(0);
+            log.info("EXIT");
+            return;
+        }*/
+
+        // Utils.saveClusters(tableName, clusters, database, algorithm);
 
         // CLUSTERING END
         // -----------------------------------------------------------------------------------
@@ -286,5 +271,6 @@ public class Main extends Application {
 //                System.out.println("" + c + "\t\t" + result.getString(a.getName()));
 //            }
 //        }
+        log.info("END");
     }
 }

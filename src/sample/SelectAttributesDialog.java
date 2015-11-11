@@ -1,10 +1,14 @@
 package sample;
 
+import org.apache.log4j.Logger;
+
 import javax.swing.*;
 import javax.swing.event.TableModelListener;
 import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableModel;
 import java.awt.event.*;
+import java.io.FileNotFoundException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class SelectAttributesDialog extends JDialog {
@@ -16,11 +20,15 @@ public class SelectAttributesDialog extends JDialog {
     private JComboBox algorithms;
     private JTextField parameters;
     private JButton runButton;
+    private JButton showResultsButton;
     private String result;
 
     ArrayList<NominalNumericalAttribute> attributes = new ArrayList<NominalNumericalAttribute>();
 
     Database database;
+
+    final static Logger log = Logger.getLogger(SelectAttributesDialog.class);
+    private ArrayList<NominalNumericalObject> dataset;
 
     public void setDatabase(Database database) {
         this.database = database;
@@ -180,11 +188,58 @@ public class SelectAttributesDialog extends JDialog {
                 table1.updateUI();
             }
         });
+
         runButton.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                System.out.println("---");
+                log.info("mouseClicked START");
+
+                long start = System.currentTimeMillis();
+                try {
+                    dataset = database.readData(getResult(), getNominalNumericalAttributes(), exclude);
+                } catch (SQLException e1) {
+                    log.error(e1);
+                }
+
+                long end = System.currentTimeMillis();
+                log.info("  Data read in: " + (end - start) + "ms." );
+
+                DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
+
+                DbScanVec dbscan = new DbScanVec(dataset, distanceMatrix);
+                log.info("  MinPts: " + dbscan.getMinPts() + ", Eps: " + dbscan.getEps());
+
+                start = System.currentTimeMillis();
+                try {
+                    dbscan.run();
+                } catch (FileNotFoundException e1) {
+                    log.error(e1);
+                }
+
+                end = System.currentTimeMillis();
+                log.info("  Clustering time: " + (end - start) + "ms." );
+
+                JOptionPane.showMessageDialog(null, "Clustering finished!");
+
+                log.info("mouseClicked END");
+            }
+        });
+        showResultsButton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                super.mouseClicked(e);
+                log.info("mouseClicked START");
+                ClusterVisualizer cv = null;
+                try {
+                    cv = new ClusterVisualizer(database, getNominalNumericalAttributes());
+                    cv.prepareColors(database);
+                    cv.prepareWeights(database);
+                    cv.showClusters();
+                } catch (SQLException e1) {
+                    log.error(e1);
+                }
+                log.info("mouseClicked END");
             }
         });
     }
@@ -203,7 +258,7 @@ public class SelectAttributesDialog extends JDialog {
             try {
                 Utils.saveAttributes(attributes, "attributes.ser");
             } catch (Exception eSave) {
-                eSave.printStackTrace();
+                log.error(eSave);
             }
         }
     }
