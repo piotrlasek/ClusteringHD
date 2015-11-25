@@ -1,7 +1,9 @@
 package sample;
 
+import org.apache.commons.io.output.StringBuilderWriter;
 import org.apache.log4j.Logger;
 
+import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Properties;
@@ -23,6 +25,8 @@ public class Database {
             e.printStackTrace();
         }
     }
+
+    private String whereConstraint = "ccc_101 = 'YES' OR ccc_121 = 'YES'" ;
 
     public Database() {
     }
@@ -109,7 +113,7 @@ public class Database {
         ArrayList<NominalNumericalObject> dataset = new ArrayList();
 
         if (getConnection()!= null) {
-            log.info("  Selected attributes: " + attributes);
+            log.info("  Selected allAttributes: " + attributes);
 
             Statement statementGetBitRecords = null;
             try {
@@ -120,9 +124,8 @@ public class Database {
 
             log.info("  Reading data from DB... ");
 
-            //String query = "SELECT id, " + attributes.replace("'", "") + " FROM " + tableName + "_map"
-            String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE ccc_101 = 'YES' OR " +
-                " ccc_121 = 'YES' LIMIT " + Main.limit;
+            String query = "SELECT id, " + attributes.replace("'", "") + " FROM data WHERE " + whereConstraint + " ORDER BY ID LIMIT " + Main.limit;
+            log.info("   " + query);
 
             statementGetBitRecords.execute(query);
 
@@ -132,10 +135,10 @@ public class Database {
             resultSetBitRecords = statementGetBitRecords.getResultSet();
 
             int count = 0;
+            int id = 0;
 
             log.info("  Constructing an array of bit vectors... ");
 
-            int id = 0;
             while (resultSetBitRecords.next()) {
                 NominalNumericalObject nno = new NominalNumericalObject();
                 nno.addAttributes(nominalNumericalAttributes);
@@ -157,38 +160,224 @@ public class Database {
      * @param objects
      * @return
      */
-    public DistanceMatrix buildDistanceMatrix(ArrayList<NominalNumericalObject> objects) {
+    public DistanceMatrix buildDistanceMatrix(ArrayList<NominalNumericalObject> objects, boolean overwrite) {
         log.info("buildDistanceMatrix Start.");
         int nnAttributesCount = objects.get(0).getNnAttributes().size();
+
         int objectsCount = objects.size();
         String fileName = "distance-matrix-" + nnAttributesCount + "-" + objectsCount + ".ser";
         DistanceMatrix dm = null;
 
-        try {
-            dm = DistanceMatrix.read(fileName);
-        } catch (Exception e) {
-            log.error(e);
+        if (!overwrite) {
+            try {
+                dm = DistanceMatrix.read(fileName);
+            } catch (Exception e) {
+                log.error(e);
+            }
         }
 
         if (dm == null) {
             log.info("New distance matrix.");
-            dm = new DistanceMatrix(objects.size(), objects.size());
+            dm = new DistanceMatrix(objects);
 
-            for (int i = 0; i < objects.size(); i++) {
-                NominalNumericalObject oi = objects.get(i);
-                for (int j = i; j < objects.size(); j++) {
-                    NominalNumericalObject oj = objects.get(j);
-                    float dist = oi.distance(oj);
-                    dm.set(i, j, dist);
-                    dm.set(j, i, dist);
-                }
-            }
-
+            dm.computeDistances();
             dm.computeNeighbours();
+
             dm.save(fileName);
         }
 
         log.info("buildDistanceMatrix End.");
         return dm;
     }
+
+    /**
+     *
+     * @return
+     */
+    public ArrayList<NominalNumericalObject> readDataFromFile(String fileName) {
+        log.info("read Start.");
+        ArrayList<NominalNumericalObject> dataset = null;
+        FileInputStream fileIn = null;
+        ObjectInputStream in = null;
+        try {
+            fileIn = new FileInputStream(fileName);
+            in = new ObjectInputStream(fileIn);
+            dataset = (ArrayList<NominalNumericalObject>) in.readObject();
+        } catch (FileNotFoundException e1) {
+            log.error(e1);
+        } catch (ClassNotFoundException e) {
+            log.error(e);
+        } catch (IOException e) {
+            log.error(e);
+        }
+        try {
+            in.close();
+            fileIn.close();
+        } catch (Exception e) {
+            log.error(e);
+        }
+        log.info("read End.");
+        return dataset;
+    }
+
+    /**
+     *
+     */
+    public void saveDataToFile(ArrayList<NominalNumericalObject> dataset, String fileName) {
+        log.info("save Start.");
+        try {
+            FileOutputStream fileOut =
+                    new FileOutputStream(fileName);
+            ObjectOutputStream out = new ObjectOutputStream(fileOut);
+            out.writeObject(dataset);
+            out.close();
+            fileOut.close();
+        } catch(IOException i) {
+            i.printStackTrace();
+        }
+        log.info("save End.");
+    }
+
+
+    /**
+     *
+     * @param dm
+     */
+    public void saveDistanceMatrixToDatabase(DistanceMatrix dm) {
+        log.info("saveDistanceMatrixToDatabase Start");
+
+        String newDM = "INSERT INTO distance_matrix (created, description) VALUES (now(), 'att: " +
+                dm.getAttributes().size() + ", size: " + dm.getHeight() + "') RETURNING id";
+        String newItem = "INSERT INTO distance_matrix_item (dm_id, p1, p2, dbid1, dbid2, dist) " +
+                " VALUES (?, ?, ?, ?, ?, ?)";
+        log.info(newDM);
+        log.info(newItem);
+
+        try {
+            Statement s = getConnection().createStatement();
+            s.execute(newDM);
+            ResultSet rs = s.getResultSet();
+            rs.next();
+            int dmId = rs.getInt("id");
+
+            PreparedStatement ps = getConnection().prepareStatement(newItem);
+            getConnection().setAutoCommit(false);
+
+            for(int i = 0; i < dm.getHeight(); i++) {
+                for (int j = 0; j < dm.getWidth(); j++) {
+                    float dist = dm.getDistance(i, j);
+                    ps.setInt(1, dmId);
+                    ps.setInt(2, i);
+                    ps.setInt(3, j);
+                    ps.setInt(4, dm.points.get(i).getDbId());
+                    ps.setInt(5, dm.points.get(j).getDbId());
+                    ps.setFloat(6, dist);
+                    ps.execute();
+                }
+                getConnection().commit();
+                if (i % 1000 == 0) {
+                    log.info("   " + (int) (((float) i / (float) dm.getWidth()) * 100) + "%");
+                }
+            }
+            getConnection().setAutoCommit(true);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        log.info("saveDistanceMatrixToDatabase End");
+    }
+
+    /**
+     *
+     * @return
+     */
+    public DistanceMatrix readDistanceMatrixFromDatabase(int dmId) throws Exception {
+        log.info("readDistanceMatrixFromDatabase Start");
+        ArrayList<NominalNumericalObject> points = new ArrayList<>();
+        int count = 0;
+        Statement statement = getConnection().createStatement();
+        String countQuery = "SELECT distinct p1, dbid1 FROM distance_matrix_item WHERE dm_id = " + dmId;
+        statement.execute(countQuery);
+        ResultSet rs = statement.getResultSet();
+
+        log.info("   Reading points...");
+        while(rs.next()) {
+            int id = rs.getInt("p1");
+            int dbid1 = rs.getInt("dbid1");
+            NominalNumericalObject nno = new NominalNumericalObject();
+            nno.setId(id);
+            nno.setDbId(dbid1);
+            points.add(nno);
+        }
+
+        // ---
+
+        DistanceMatrix dm = new DistanceMatrix(points);
+
+        String allDists = "SELECT p1, p2, dist FROM distance_matrix_item WHERE dm_id = " + dmId;
+        statement.execute(allDists);
+        ResultSet rsAllObjects = statement.getResultSet();
+
+        log.info("   Reading distances...");
+        int i = 0;
+        while (rsAllObjects.next()) {
+            for (int j = 0; j < count; j++) {
+                int p1 = rsAllObjects.getInt("p1");
+                int p2 = rsAllObjects.getInt("p2");
+                float dist = rsAllObjects.getFloat("dist");
+
+                if (p1 != i || p2 != j) {
+                    throw new Exception("Wrong data!");
+                }
+
+                dm.set(i, j, dist);
+            }
+
+            if (i % 1000 == 0) {
+                log.info("   " + (int) (((float) i / count) * 100) + "%");
+            }
+
+            i++;
+        }
+        log.info("   Reading done.");
+        log.info("readDistanceMatrixFromDatabase Stop");
+        return dm;
+    }
+
+    /**
+     *
+     * @param dm
+     * @param fileName
+     */
+    public void saveDistanceMatrixToCSV(DistanceMatrix dm, String fileName) {
+        log.info("saveDistanceMatrixToCSV Start");
+
+
+        PrintWriter writer = null;
+        try {
+            writer = new PrintWriter(fileName, "UTF-8");
+
+            for(int i = 0; i < dm.getHeight(); i++) {
+                for (int j = 0; j < dm.getWidth(); j++) {
+                    float dist = dm.getDistance(i, j);
+                    writer.println(i + ";" + j + ";" + dist + ";");
+                }
+                if (i % 1000 == 0) {
+                    log.info("   " + (int) (((float) i / (float) dm.getWidth()) * 100) + "%");
+                }
+            }
+
+            writer.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            log.info(e);
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            log.info(e);
+        }
+
+        log.info("saveDistanceMatrixToDatabase End");
+    }
+
+
 }

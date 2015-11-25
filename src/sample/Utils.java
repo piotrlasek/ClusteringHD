@@ -1,13 +1,13 @@
 package sample;
 
+import org.apache.log4j.Logger;
 import org.apache.mahout.common.distance.EuclideanDistanceMeasure;
 import org.apache.mahout.math.DenseVector;
 
+import javax.swing.*;
+import javax.xml.transform.Result;
 import java.io.*;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 /**
@@ -15,6 +15,7 @@ import java.util.*;
  */
 public class Utils {
 
+    final static Logger log = Logger.getLogger(Utils.class);
 
     /**
      *
@@ -232,7 +233,7 @@ public class Utils {
 
             String format = formats.getString("format").trim();
 
-            // get attributes
+            // get allAttributes
             Statement statementAttributes = connection.createStatement();
 
             String attributesQuery = "select name from attributes where format like \'" + format + "%\'";
@@ -300,17 +301,17 @@ public class Utils {
      */
     /*public static ArrayList<Attribute> getAttributes(Connection connection) throws SQLException {
 
-        ArrayList<Attribute> attributes = new ArrayList<Attribute>();
+        ArrayList<Attribute> allAttributes = new ArrayList<Attribute>();
 
         Statement s = connection.createStatement();
-        boolean b = s.execute("SELECT arnum as id, lower(trim(name)) as name, type, length, format, substring(label from 0 for 100) as label FROM attributes");
+        boolean b = s.execute("SELECT arnum as id, lower(trim(name)) as name, type, length, format, substring(label from 0 for 100) as label FROM allAttributes");
         ResultSet rs = s.getResultSet();
 
         while(rs.next()) {
-            attributes.add(new Attribute(rs));
+            allAttributes.add(new Attribute(rs));
         }
 
-        return attributes;
+        return allAttributes;
     }*/
 
     /**
@@ -362,42 +363,47 @@ public class Utils {
 
     /**
      *
-     * @param tableName
      * @param clusters
      * @param database
-     * @param algorithm
      * @throws SQLException
      */
-    public static void saveClusters(String tableName, ArrayList<ClusterVect> clusters, Database database, String algorithm) throws SQLException {
+    public static int saveClusters(ArrayList<ClusterVect> clusters, Database database) throws SQLException {
 
-        System.out.println("Saving clusters...");
+        log.info("saveClusters Start");
         Statement s = database.getConnection().createStatement();
 
-        // clear previous results
-        String q = "update " + tableName + "_map" + " set " + algorithm + " = NULL";
-        s.execute(q);
+        database.getConnection().setAutoCommit(false);
 
-        // prepare statement
+        String newExperiment = "INSERT INTO experiment (created, description) VALUES (now(), ?) RETURNING id";
+        PreparedStatement psNewExperiment = database.getConnection().prepareStatement(newExperiment);
 
-        Statement ps = database.getConnection().createStatement();
+        String description = JOptionPane.showInputDialog(null, "Description");
 
-        // update cluster labels
+        psNewExperiment.setString(1, description);
+
+        psNewExperiment.executeQuery();
+        ResultSet rsNewExperimentId = psNewExperiment.getResultSet();
+        rsNewExperimentId.next();
+        int newExperimentId = rsNewExperimentId.getInt("id");
+
+        String singleResult = "INSERT INTO experiment_item (ex_id, item_id, cluster_id) VALUES (?, ?, ?)";
+        PreparedStatement psSingleResult = database.getConnection().prepareStatement(singleResult);
+
         for(ClusterVect cv : clusters) {
-            String update = "update " + tableName + "_map " + " set " + algorithm + " = #ALG " +
-                    " where id in (#IDS)";
-            // ps.setInt(1, cv.clusterId);
-            // ps.setString(2, cv.toString());
-            // ps.execute();
-
-            System.out.println("Cluster " + cv.getClusterId() + " (" + cv.points.size() + ") " + ": " + cv.toString());
-
-            update = update.replace("#ALG", "" + cv.getClusterId());
-            update = update.replace("#IDS", cv.toString());
-            // System.out.println(update);
-            s.execute(update);
+            ArrayList<NominalNumericalObject> clusterPoints = cv.points;
+            for(NominalNumericalObject nno : clusterPoints) {
+                psSingleResult.setInt(1, newExperimentId);
+                psSingleResult.setInt(2, nno.getDbId());
+                psSingleResult.setInt(3, nno.clusterId);
+                psSingleResult.execute();
+            }
+            log.info("   cluster " + cv.getClusterId() + " (" + cv.points.size() + ") " + ": " + cv.toString());
         }
+        database.getConnection().commit();
+        database.getConnection().setAutoCommit(true);
 
-        System.out.println("Done.");
+        log.info("saveClusters End");
+        return newExperimentId;
     }
 
 
@@ -455,14 +461,24 @@ public class Utils {
     /**
      *
      * @param database
-     * @param algorithm
      * @return
      */
-    public static ArrayList<Integer> getClusters(Database database, String algorithm) throws SQLException {
+    public static ArrayList<Integer> getClusters(Database database, int experimentId) throws SQLException {
 
+        String selectClusterIds = "SELECT DISTINCT cluster_id FROM experiment_item WHERE ex_id = ?";
+        PreparedStatement psSelectClusters = database.getConnection().prepareStatement(selectClusterIds);
+        psSelectClusters.setInt(1, experimentId);
+        psSelectClusters.executeQuery();
+        ResultSet rsClusterIds = psSelectClusters.getResultSet();
 
-        ArrayList<Integer> result = null;
-        try {
+        ArrayList<Integer> result = new ArrayList<>();
+
+        while (rsClusterIds.next()) {
+            int clusterId = rsClusterIds.getInt("cluster_id");
+            result.add(clusterId);
+        }
+
+        /* try {
             result = Utils.readClusters(algorithm);
         } catch (Exception e) {
             e.printStackTrace();
@@ -483,7 +499,7 @@ public class Utils {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
+        }*/
 
         return result;
     }

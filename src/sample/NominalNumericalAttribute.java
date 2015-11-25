@@ -16,7 +16,6 @@ public class NominalNumericalAttribute implements Serializable {
     private Float min;
     private Float max;
     private Float[] minMax;
-
     private int id;
     private boolean used;
     private String format;

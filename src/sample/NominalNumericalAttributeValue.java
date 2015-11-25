@@ -1,9 +1,11 @@
 package sample;
 
+import java.io.Serializable;
+
 /**
  * Created by Piotr Lasek on 9/16/2015.
  */
-public class NominalNumericalAttributeValue {
+public class NominalNumericalAttributeValue implements Serializable {
 
     Float numericalValue;
     String nominalValue;

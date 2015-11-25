@@ -20,29 +20,11 @@ public class DbScanVecDM {
      *
      * @param dataset
      */
-    public DbScanVecDM(ArrayList<NominalNumericalObject> dataset) {
+    public DbScanVecDM(ArrayList<NominalNumericalObject> dataset, DistanceMatrix distanceMatrix) {
         setDataset(dataset);
         setClusters(new ArrayList<ClusterVect>());
         setNoise(new ArrayList<NominalNumericalObject>());
-
-        // try to restore distance matrix
-        try {
-            dm = DistanceMatrix.read("distance-matrix.ser");
-        } catch (Exception e) {
-            dm = null;
-            e.printStackTrace();
-        }
-
-        if (dm == null) {
-            dm = new DistanceMatrix(dataset.size(), dataset.size());
-            System.out.println("Create distance matrix");
-            for (NominalNumericalObject nno1 : dataset) {
-                for (NominalNumericalObject nno2 : dataset) {
-                    float dist = nno1.distance(nno2);
-                    dm.set(nno1.getId(), nno2.getId(), dist);
-                }
-            }
-        }
+        this.dm = distanceMatrix;
     }
 
     /**
@@ -75,7 +57,8 @@ public class DbScanVecDM {
      * @param clusterId
      * @return
      */
-    public ArrayList<NominalNumericalObject> ExpandCluster(ArrayList<NominalNumericalObject> set, NominalNumericalObject point, int clusterId) {
+    public ArrayList<NominalNumericalObject> ExpandCluster(ArrayList<NominalNumericalObject> set,
+        NominalNumericalObject point, int clusterId) {
         ArrayList<NominalNumericalObject> clusterPoints = new ArrayList<NominalNumericalObject>();
 
         ArrayList<NominalNumericalObject> seeds = point.getNeighbours(getDataset(), getEps());

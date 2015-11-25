@@ -39,12 +39,18 @@ public class DbScanVec {
     public void run() throws FileNotFoundException {
         log.info("run START");
         int clusterId = 1;
+
+
+        for(NominalNumericalObject p : getDataset()) {
+            p.clusterId = -1;
+        }
+
         PrintWriter pw = new PrintWriter(Main.filePrefix + "-clusters.txt");
         for(NominalNumericalObject p : getDataset()) {
             if (p.clusterId == -1) { // UNCLASSIFIED
                ArrayList<NominalNumericalObject> clusterPoints = expandCluster(getDataset(), p, clusterId);
                if (clusterPoints.size() > 0) {
-                   log.info("   cluster " + clusterId + " created.");
+                   log.info("   cluster " + clusterId + " created: " + clusterPoints.size() + ".");
                    ClusterVect c = new ClusterVect(clusterId);
                    c.addAll(clusterPoints);
                    getClusters().add(c);
@@ -73,12 +79,16 @@ public class DbScanVec {
         if (seeds.size() < getMinPts()) {
             point.clusterId = 0; // NOISE
             getNoise().add(point);
+            // setClusterId(seeds, 0);
         } else {
             point.clusterId = clusterId;
             clusterPoints.add(point);
-
+            clusterPoints.addAll(seeds);
+            setClusterId(seeds, clusterId);
             //clusterPoints.addAll(point.getNeighbours(getDataset(), getEps()));
-            clusterPoints.addAll(getNeighbours(point, getEps()));
+            //ArrayList<NominalNumericalObject> neighbours = getNeighbours(point, getEps());
+            //clusterPoints.addAll(neighbours);
+            //setClusterId(neighbours, clusterId);
 
             //while(seeds.size() > 0) {
             while(true) {
@@ -108,6 +118,17 @@ public class DbScanVec {
 
     /**
      *
+     * @param neighbours
+     * @param clusterId
+     */
+    private void setClusterId(ArrayList<NominalNumericalObject> neighbours, int clusterId) {
+        for(NominalNumericalObject nno : neighbours) {
+            nno.clusterId = clusterId;
+        }
+    }
+
+    /**
+     *
      * @param o
      * @param Eps
      * @return
@@ -121,7 +142,7 @@ public class DbScanVec {
         Integer[ ] allNeighbours = distanceMatrix.getNeighbours(id, Eps, size);
 
         for(int i = 0; i < size.getValue(); i++) { //Integer nId : allNeighbours) {
-            NominalNumericalObject nno = dataset.get(i);
+            NominalNumericalObject nno = dataset.get(allNeighbours[i]);
             neighbours.add(nno);
         }
 

@@ -7,6 +7,7 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import javax.swing.*;
+import java.awt.*;
 import java.io.*;
 import java.sql.*;
 import java.util.*;
@@ -17,6 +18,7 @@ import org.apache.log4j.Logger;
  */
 public class Main extends Application {
 
+    //public static int limit = 17000;
     public static int limit = 1000;
 
     final static Logger log = Logger.getLogger(Main.class);
@@ -104,7 +106,6 @@ public class Main extends Application {
         }
 
         //System.out.println(sb.toString());
-
         PrintWriter pw = new PrintWriter(Main.filePrefix + "-averages.txt");
         pw.write(sb.toString());
         pw.close();
@@ -121,13 +122,14 @@ public class Main extends Application {
 
         log.info("START");
 
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        //UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());for (Iterator i = UIManager.getLookAndFeelDefaults().keySet().iterator(); i.hasNext();) {
 
         Database database = new Database();
+
         //Connection connection = database.getConnection();
 
         // -----------------------------------------------------------------------
-        // Determines which attributes are numerical or nominal.
+        // Determines which allAttributes are numerical or nominal.
         // For numerical determines max and min values.
         //
         // ArrayList<NominalNumericalAttribute> nnAttributes = Utils.getNominalNumericalAttributes(connection);
@@ -141,16 +143,16 @@ public class Main extends Application {
                 "'GENGSWL','GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6'," +
                 "'SPV_6B','SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
 
-        //String attributes = "'DHHGAGE','GENDHDI','CIH_1','HUPDPAD','CHPGMDC','PACDFM','PMH_04'";
+        //String allAttributes = "'DHHGAGE','GENDHDI','CIH_1','HUPDPAD','CHPGMDC','PACDFM','PMH_04'";
 
         // Most important
-        //String attributes = "'GENDHDI', 'DHHGAGE', 'HUPDPAD', 'GEODPMF', 'GEN_08'";
+        //String allAttributes = "'GENDHDI', 'DHHGAGE', 'HUPDPAD', 'GEODPMF', 'GEN_08'";
         //, 'GEN_02A2', 'GENGSWL', 'GEOGPRV', 'PACDFM', 'PACDEE'";
 
         String algorithm = "";
 
         // Creates a mapped table segments_map based on original table segments.
-        /*attributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH'," +
+        /*allAttributes  = "'CIH_1','SFEDE1','CIH_2','SFE_504','CIH_4','DHHGAGE','GEODPMF','GEN_08','GEOGPRV','INCGHH'," +
                 "'CHPGMDC','CHPG04','ACC_40','PCU_153','PACDFM','PACDEE','FVCDTOT','GENDHDI','GEN_02A2','GENGSWL'," +
                 "'GEN_02B','GENDMHI','DISDCHR','GEN_09','HUPDPAD','DHHGLVG','ADLF6R','PMH_04','SPV_6','SPV_6B'," +
                 "'SPSDATT','SPSDWOR','SPSDCON','GEN_10'";
@@ -177,10 +179,10 @@ public class Main extends Application {
         SelectAttributesDialog sad;
         sad = new SelectAttributesDialog(database, attributes, exclude);
         sad.setVisible(true);
-        // attributes = sad.getResult();
+        // allAttributes = sad.getResult();
         // algorithm = sad.getAlgorithm();
 
-        // dataset = database.readData(attributes, sad.getNominalNumericalAttributes(), exclude);
+        // dataset = database.readData(allAttributes, sad.getNominalNumericalAttributes(), exclude);
         // DistanceMatrix distanceMatrix = database.buildDistanceMatrix(dataset);
 
         // -----------------------------------------------------------------------------------

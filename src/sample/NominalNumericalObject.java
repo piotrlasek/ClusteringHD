@@ -14,7 +14,7 @@ public class NominalNumericalObject implements Serializable {
     private int id;
     private int dbId;
     private ResultSet values;
-    private ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to attributes list
+    private ArrayList<NominalNumericalAttribute> nnAttributes;  // a reference to allAttributes list
     private ArrayList<NominalNumericalAttributeValue> nnValues;
     private ArrayList<NominalNumericalObject> neighbours;
     public int clusterId = -1;
@@ -93,7 +93,7 @@ public class NominalNumericalObject implements Serializable {
         nnValues.add(nnav);
     }
 
-    private void addValueNumerical(String attribute, String nominalValue, Float numericalValue) {
+    public void addValueNumerical(String attribute, String nominalValue, Float numericalValue) {
         NominalNumericalAttribute nnaTmp = new NominalNumericalAttribute(attribute, false);
         int index = nnAttributes.indexOf(nnaTmp);
         NominalNumericalAttribute nna = nnAttributes.get(index);
@@ -171,6 +171,7 @@ public class NominalNumericalObject implements Serializable {
             String value = rs.getString(nna.getName());
 
             if (nna.getType() == true) {
+
                 // attribute is numerical
                 Float min = nna.getMin();
                 Float max = nna.getMax();
@@ -224,6 +225,11 @@ public class NominalNumericalObject implements Serializable {
     }
 
     public void setDbId(int dbId) {
+
         this.dbId = dbId;
+    }
+
+    public int getDbId() {
+        return dbId;
     }
 }

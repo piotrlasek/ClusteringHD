@@ -39,8 +39,6 @@ public class ClustersFrame extends JFrame {
                 onCancel();
             }
         }, KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
-        slider1.addComponentListener(new ComponentAdapter() {
-        });
         slider1.addPropertyChangeListener(new PropertyChangeListener() {
             @Override
             public void propertyChange(PropertyChangeEvent evt) {
@@ -71,10 +69,35 @@ public class ClustersFrame extends JFrame {
             @Override
             public void mouseClicked(MouseEvent e) {
                 super.mouseClicked(e);
-                // remove same values
-
                 myCanvas.removeSame(true);
+            }
+        });
+        slider1.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                System.out.println("====");
+            }
+        });
+        slider1.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                super.mouseReleased(e);
+                myCanvas.setZoom((float) slider1.getValue() / 100);
+                myCanvas.updateUI();
+                myCanvas.repaint();
+                scrollPane.revalidate();
+                scrollPane.repaint();
 
+            }
+        });
+        slider2.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                super.mouseReleased(e);
+                myCanvas.setAttributeWidth((float) slider2.getValue());
+                myCanvas.repaint();
+                scrollPane.revalidate();
+                scrollPane.repaint();
 
             }
         });

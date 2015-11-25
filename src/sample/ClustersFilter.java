@@ -23,7 +23,7 @@ public class ClustersFilter {
         TripleHashMap<String, String, Float> thmTmp = new TripleHashMap<>();
         Set<String> attributes = data.get(0).keySet();
 
-        // iterate through all attributes
+        // iterate through all allAttributes
         for(String attribute : attributes) {
             boolean attributeHasSameValues = true;
             for(TripleHashMap<String, String, HueWeight> thmCluster : data) {

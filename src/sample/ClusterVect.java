@@ -72,12 +72,10 @@ public class ClusterVect {
             StringBuilder sb = new StringBuilder();
             ArrayList<NominalNumericalObject> points = this.getPoints();
 
-            //sb.append("Cluter: " + this.getClusterId() + ", size: " + points.size() + "\n");
-            //sb.append("Points: ");
             int cnt = 0;
             for (NominalNumericalObject p : points) {
                 if (cnt > 0) sb.append(", ");
-                sb.append(p.getId());
+                sb.append(p.getDbId());
                 cnt++;
             }
 

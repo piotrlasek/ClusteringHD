@@ -1,5 +1,9 @@
 package sample;
 
+import org.apache.log4j.Logger;
+
+import javax.swing.*;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -14,15 +18,20 @@ public class ClusterVisualizer {
     private Database database;
     TripleHashMap<String, String, Float> attributeValueHue = null;
     String algorithm = "dbscan";
+    int experimentId;
+
+    final static Logger log = Logger.getLogger(ClusterVisualizer.class);
 
     /**
      *
      * @param database
      */
-    public ClusterVisualizer(Database database, ArrayList<NominalNumericalAttribute> attributes)
+    public ClusterVisualizer(Database database, ArrayList<NominalNumericalAttribute> attributes, int experimentId)
             throws SQLException {
         this.database = database;
         this.attributes = attributes;
+        this.experimentId = experimentId;
+        log.info("ClusterVisualizer");
     }
 
     /**
@@ -33,14 +42,16 @@ public class ClusterVisualizer {
         //frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         try {
             ArrayList<TripleHashMap<String, String, HueWeight>> data = new ArrayList< TripleHashMap<String, String, HueWeight>>();
-            ArrayList<Integer> clusters = Utils.getClusters(database, algorithm);
+            ArrayList<Integer> clusters = Utils.getClusters(database, experimentId);
 
             for (Integer cluster : clusters) {
-                TripleHashMap<String, String, HueWeight> attributeValueHueWeight = TripleHashMap.readHW(getFileName("avhw_", algorithm, cluster, attributes.size()));
+                String fileName = getFileName("ex_" + experimentId, cluster, attributes.size(), Main.limit);
+                log.info("   Reading file: " + fileName);
+                TripleHashMap<String, String, HueWeight> attributeValueHueWeight = TripleHashMap.readHW(fileName);
                 data.add(attributeValueHueWeight);
             }
 
-            System.out.println("Object deserialized.");
+            log.info("Object deserialized.");
 
             MyCanvas myCanvas = new MyCanvas(data, attributes, attributeValueHue );
             ClustersFrame cf = new ClustersFrame(myCanvas);
@@ -52,7 +63,7 @@ public class ClusterVisualizer {
           //  frame.setContentPane(new MyCanvas(attributeValueHueWeight));
           //  frame.setVisible(true);
         } catch (Exception e) {
-            System.out.println("Deserialization did not work. Creating new object...");
+            log.info("Deserialization did not work. Creating new object...");
             e.printStackTrace();
         }
     }
@@ -60,31 +71,30 @@ public class ClusterVisualizer {
     /**
      *
      * @param prefix
-     * @param algorithm
      * @param clusterId
      * @param attributesCount
      */
-    public String getFileName(String prefix, String algorithm, Integer clusterId, Integer attributesCount) {
-        return prefix + algorithm + "_" + clusterId + "_" + attributesCount + ".ser";
+    public String getFileName(String prefix, Integer clusterId, Integer attributesCount, Integer itemsCount) {
+        return prefix + "-" + clusterId + "_" + attributesCount + "_" + itemsCount + ".ser";
     }
 
     /**
      *
-     * @param database
      */
-    public void prepareWeights(Database database) throws SQLException {
-        ArrayList<Integer> clusterIds = Utils.getClusters(database, algorithm);
+    public void prepareWeights() throws SQLException {
+
+        ArrayList<Integer> clusterIds = Utils.getClusters(database, experimentId );
 
         for(Integer clusterId : clusterIds) {
             TripleHashMap<String, String, HueWeight> attributeValueHueWeight = null;
-            String fileName = getFileName("avhw_", algorithm, clusterId, attributes.size());
+            String fileName = getFileName("ex_" + experimentId, clusterId, attributes.size(), Main.limit);
 
             if (attributeValueHueWeight == null) {
                 try {
                     attributeValueHueWeight = TripleHashMap.readHW(fileName);
-                    System.out.println("Hues and weights object deserialized.");
+                    log.info("Hues and weights object deserialized.");
                 } catch (Exception e) {
-                    System.out.println("Deserialization did not work. Creating new object...");
+                    log.info("Deserialization did not work. Creating new object...");
                 }
             }
 
@@ -92,30 +102,33 @@ public class ClusterVisualizer {
                 attributeValueHueWeight = new TripleHashMap<>();
 
                 if (attributeValueHueWeight != null)
-                    System.out.println("Deserialized hues and weights object sizes did not match.");
+                    log.info("Deserialized hues and weights object sizes did not match.");
 
                 Integer recordsCountInCluster = Utils.getRecordsCount(database.getConnection(),
-                        "SELECT COUNT (id) FROM data WHERE " + algorithm + " = " + clusterId);
+                        "SELECT COUNT (id) FROM experiment_item WHERE ex_id = " + experimentId +  " AND cluster_id = " + clusterId);
 
                 System.out.print("Preparing weights for cluster " + clusterId + ": ");
                 for (NominalNumericalAttribute a : attributes) {
                     String attribute = a.getName();
 
-                    String query = "SELECT " + attribute + ", COUNT(" + attribute + ") as CNT " +
-                            "FROM data " +
-                            "WHERE " + algorithm + " = " + clusterId + " " +
+                    String query =
+                            "SELECT " + attribute + ", COUNT(" + attribute + ") as CNT " +
+                            "FROM data JOIN experiment_item ON data.id = experiment_item.item_id " +
+                            "WHERE experiment_item.cluster_id = " + clusterId + " AND experiment_item.ex_id = " + experimentId + " " +
                             "GROUP BY " + attribute + " " +
                             "ORDER BY cnt DESC";
 
-                    System.out.print(attribute + " ");
-                    Statement statement = database.getConnection().createStatement();
-                    statement.execute(query);
-                    ResultSet rs = statement.getResultSet();
+                    // log.info("   " + query);
+
+                    Statement sQuery = database.getConnection().createStatement();
+                    sQuery.executeQuery(query);
+                    ResultSet rs = sQuery.getResultSet();
 
                     while (rs.next()) {
                         String value = rs.getString(attribute);
 
                         Float hue = attributeValueHue.get(attribute, value);
+
                         Integer distinctValuesCount = rs.getInt("CNT");
                         Float weight = Float.valueOf(distinctValuesCount) / Float.valueOf(recordsCountInCluster);
 
@@ -129,83 +142,70 @@ public class ClusterVisualizer {
         }
     }
 
-
-
     /**
      *
-     * @param database
      */
-    public void prepareColors(Database database) throws SQLException {
-        String fileName = getFileName("colors", algorithm, 0, attributes.size());
+    public void prepareColors() throws SQLException {
+
+        String fileName = getFileName("colors", experimentId, attributes.size(), Main.limit);
 
         if (attributeValueHue == null) {
             try {
                 attributeValueHue = TripleHashMap.read(fileName);
-                System.out.println("Colors object deserialized.");
+                log.info("Colors object deserialized.");
             } catch(Exception e) {
-                System.out.println("Colors object deserialization did not work. Creating new object...");
+                log.info("Colors object deserialization did not work. Creating new object...");
             }
         }
 
-        // sort attributes by count
-
+        // sort allAttributes by count
         if (attributeValueHue == null || attributeValueHue.size() != attributes.size()) {
             attributeValueHue = new TripleHashMap<>();
 
             if (attributeValueHue != null)
-                System.out.println("Deserialized colors object sizes did not match.");
+                log.info("Deserialized colors object sizes did not match.");
 
-            System.out.print("Preparing colors for: ");
+            log.info("Preparing colors...");
+
+            int attributeIndex = 0;
 
             for (NominalNumericalAttribute a : attributes) {
-                // while(attCount.hasNext()) {
-                //String attribute = attCount.next().getKey();
                 String attribute = a.getName();
 
                 String query = "SELECT " + attribute + ", COUNT(" + attribute + ") as CNT " +
-                        "FROM data " +
-                        // "WHERE " + algorithm + " = " + clusterId + " " +
+                        "FROM data JOIN experiment_item ON " +
+                        "data.id = experiment_item.item_id " +
+                        "WHERE experiment_item.ex_id = " + experimentId + " " +
                         "GROUP BY " + attribute + " " +
-                        "ORDER BY cnt DESC";
+                        "ORDER BY cnt DESC ";
 
-                System.out.print(attribute + " ");
+                if (attributeIndex % 100 == 0)
+                    log.info("   " + (int)(((float) (attributeIndex++) / (float) attributes.size())*100) + "%") ;
+
                 Statement statement = database.getConnection().createStatement();
                 statement.execute(query);
                 ResultSet rs = statement.getResultSet();
 
                 Integer recordsCount = Utils.getRecordsCount(database.getConnection(),
-                        "SELECT COUNT (DISTINCT " + attribute + ") FROM data");
+                        "SELECT " +
+                        "   COUNT (DISTINCT " + attribute + ") " +
+                        "FROM data JOIN experiment_item " +
+                        "   ON data.id = experiment_item.item_id " +
+                        "WHERE " +
+                        "   experiment_item.ex_id = " + experimentId);
 
                 Float hueDelta = 1f / recordsCount;
                 Float hue = 0f;
-
-                /*
-                if (a.getType() == true) { // attribute is numerical
-                    while(rs.next()) {
-                        String value = rs.getString(attribute);
-                        Float valueFloat = Utils.convert(value);
-
-                        if (valueFloat < 0) {
-                            attributeValueHue.put(attribute, valueFloat, hue);
-                        } else {
-                            attributeValueHue.put(attribute, value, hue);
-                        }
-
-                        hue += hueDelta;
-                    }
-                } else { // attribute is nominal
-                */
 
                 while (rs.next()) {
                     String value = rs.getString(attribute);
                     attributeValueHue.put(attribute, value, hue);
                     hue += hueDelta;
                 }
-            /*}*/
             }
 
-            System.out.println();
             attributeValueHue.save(fileName);
         }
     }
+
 }

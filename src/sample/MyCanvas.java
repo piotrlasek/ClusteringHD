@@ -112,9 +112,9 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
 
             attributeIndex = 0;
 
-            //          Set<String> attributes = sshw.keySetSorted();
+            //          Set<String> allAttributes = sshw.keySetSorted();
 
-            //for (String attribute : attributes) {
+            //for (String attribute : allAttributes) {
             for (int xxx = 0; xxx < attributesSorted.size(); xxx++) {
                 String attribute = attributesSorted.get(attributesSorted.size() - xxx - 1);
 
@@ -131,6 +131,13 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
                 for(String value : values) {
                     HueWeight hw = sshw.get(attribute, value);
                     hw.setDescription(value);
+
+                    if (hw == null) {
+                        System.out.println("hw = null");
+                    } else if (hw.getHue() == null) {
+                        System.out.println("hw.getHue = null");
+                    }
+
                     hueWeights.add(hw);
                 }
 
@@ -140,9 +147,13 @@ class MyCanvas extends JComponent implements MouseMotionListener, MouseInputList
                 for(HueWeight hw : hueWeights) {
 
                     // HueWeight hw = sshw.get(attribute, value);
-
                     float saturation = 1;
                     float brighteness = 1;
+                    if (hw == null) {
+                        System.out.println("null = hw");
+                    } else if (hw.getHue() == null) {
+                        System.out.println("hue = null");
+                    }
                     float hue = hw.getHue() + 0.5f;
                     hue = hue % 1;
 

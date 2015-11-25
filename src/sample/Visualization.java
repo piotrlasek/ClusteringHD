@@ -100,7 +100,7 @@ public class Visualization {
      * @return
         ArrayList<String> subgroup = new ArrayList<String>();
 
-        for (String attribute : attributes) {
+        for (String attribute : allAttributes) {
             if (attribute.startsWith(subgroupName)) {
                 subgroup.add(attribute);
             }
@@ -139,7 +139,7 @@ public class Visualization {
     private String selectAttributes(ArrayList<String> exceptAttributes) {
 
         StringBuilder sbAttributes = new StringBuilder();
-        sbAttributes.append("select name from attributes ");
+        sbAttributes.append("select name from allAttributes ");
 
         if (exceptAttributes.size() > 0) {
             sbAttributes.append("where ");

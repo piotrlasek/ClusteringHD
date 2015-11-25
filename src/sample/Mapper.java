@@ -81,7 +81,7 @@ public class Mapper {
 
         HashMap<String, Mapping> formatMapping = new HashMap<String, Mapping>();
         String homeDirectory = System.getProperty("user.home");
-        String filePath = homeDirectory + "/Dropbox/PROJECTS/DIABETIC/attributes-2.txt";
+        String filePath = homeDirectory + "/Dropbox/PROJECTS/DIABETIC/allAttributes-2.txt";
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             while (true) {
@@ -135,10 +135,10 @@ public class Mapper {
                             mapping.put(at[1], i.toString());
                         } else if (castInt == false && intDef == false && at.length == 2 &&
                                 castFloat == false) {
-                            // Nominal attributes...
+                            // Nominal allAttributes...
 
                             // mapping.put(at[1], tmpInt++);
-                            mapping.put(at[1], at[1]); // no mapping for nominal attributes
+                            mapping.put(at[1], at[1]); // no mapping for nominal allAttributes
 
                         } else if (castFloat == true && intDef == false && castInt == false &&
                                 at.length == 2) {
