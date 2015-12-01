@@ -23,6 +23,7 @@ public class DistanceMatrix implements Serializable {
     ArrayList<NominalNumericalObject> points;
     // DistanceMeasure
     int xxxx;
+    int yyyy;
 
     /**
      *
